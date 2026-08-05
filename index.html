@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/budget-tracker/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ApexBudget | Smart Personal Finance & Budget Tracker</title>
+    <meta name="description" content="Monitor your account balances, manage monthly budgets, and visualize your spending habits in real time with ApexBudget." />
+    <script>
+      (function () {
+        var saved = localStorage.getItem("theme");
+        var theme =
+          saved === "light" || saved === "dark"
+            ? saved
+            : window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+    <script type="module" crossorigin src="/budget-tracker/assets/index-B0E-EbqQ.js"></script>
+    <link rel="stylesheet" crossorigin href="/budget-tracker/assets/index-9nmSdn9b.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
