@@ -9,43 +9,53 @@ import {
   groupByMonth,
 } from "./transactionStats"
 
-export function groupExpensesByCategory(transactions) {
+function groupByCategoryWithSubs(transactions, type) {
   const groups = {}
 
   transactions
-    .filter((t) => t.type === "expense")
+    .filter((t) => t.type === type)
     .forEach((t) => {
       const key = (t.category || "Uncategorized").trim() || "Uncategorized"
-      groups[key] = (groups[key] || 0) + Number(t.amount)
+      const sub = (t.subcategory || "").trim()
+
+      if (!groups[key]) {
+        groups[key] = { total: 0, subcategories: {} }
+      }
+      groups[key].total += Number(t.amount)
+
+      if (sub) {
+        groups[key].subcategories[sub] =
+          (groups[key].subcategories[sub] || 0) + Number(t.amount)
+      }
     })
 
   return Object.entries(groups)
-    .map(([category, total]) => ({ category, total }))
+    .map(([category, data]) => ({
+      category,
+      total: data.total,
+      subcategories: Object.entries(data.subcategories)
+        .map(([subcategory, total]) => ({ subcategory, total }))
+        .sort((a, b) => b.total - a.total),
+    }))
     .sort((a, b) => b.total - a.total)
 }
 
+export function groupExpensesByCategory(transactions) {
+  return groupByCategoryWithSubs(transactions, "expense")
+}
+
 export function groupIncomeByCategory(transactions) {
-  const groups = {}
-
-  transactions
-    .filter((t) => t.type === "income")
-    .forEach((t) => {
-      const key = (t.category || "Uncategorized").trim() || "Uncategorized"
-      groups[key] = (groups[key] || 0) + Number(t.amount)
-    })
-
-  return Object.entries(groups)
-    .map(([category, total]) => ({ category, total }))
-    .sort((a, b) => b.total - a.total)
+  return groupByCategoryWithSubs(transactions, "income")
 }
 
 export function getExpenseBreakdown(transactions) {
   const grouped = groupExpensesByCategory(transactions)
   const total = grouped.reduce((sum, g) => sum + g.total, 0)
 
-  return grouped.map(({ category, total: amount }) => ({
+  return grouped.map(({ category, total: amount, subcategories }) => ({
     category,
     amount,
+    subcategories,
     percentage: total > 0 ? (amount / total) * 100 : 0,
   }))
 }

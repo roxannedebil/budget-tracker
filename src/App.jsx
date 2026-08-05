@@ -9,9 +9,11 @@ import Auth from "./pages/Auth"
 
 import Dashboard from "./pages/Dashboard"
 import Transactions from "./pages/Transactions"
+import Accounts from "./pages/Accounts"
 import Budget from "./pages/Budget"
 import Reports from "./pages/Reports"
 import Profile from "./pages/Profile"
+import Settings from "./pages/Settings"
 
 function getInitialTheme() {
   const saved = localStorage.getItem("theme")
@@ -31,9 +33,14 @@ const PAGE_META = {
     title: "Transactions",
     subtitle: "Income, expenses & transfers",
   },
+  accounts: {
+    title: "Accounts",
+    subtitle: "Balances & activity per account",
+  },
   budget: { title: "Budget", subtitle: "Monthly limits by category" },
   reports: { title: "Reports", subtitle: "Charts & breakdowns" },
   profile: { title: "Profile", subtitle: "Account settings" },
+  settings: { title: "Settings", subtitle: "Manage categories & preferences" },
 }
 
 function App() {
@@ -221,6 +228,15 @@ function App() {
           />
         )}
 
+        {activePage === "accounts" && (
+          <Accounts
+            transactions={transactions}
+            accounts={accounts}
+            fetchAccounts={fetchAccounts}
+            loading={dataLoading}
+          />
+        )}
+
         {activePage === "budget" && (
           <Budget transactions={transactions} loading={dataLoading} />
         )}
@@ -235,6 +251,10 @@ function App() {
             profile={profile}
             onProfileUpdate={() => fetchProfile(session.user.id)}
           />
+        )}
+
+        {activePage === "settings" && (
+          <Settings transactions={transactions} />
         )}
       </div>
 

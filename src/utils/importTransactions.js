@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx"
+import { toStoredDate } from "./formatDate"
 
 export const TEMPLATE_COLUMNS = [
   { name: "amount", required: true, description: "Number (e.g. 1500)" },
@@ -22,6 +23,11 @@ export const TEMPLATE_COLUMNS = [
     required: false,
     description: "Required for expense (e.g. Food)",
   },
+  {
+    name: "subcategory",
+    required: false,
+    description: "Optional subcategory (e.g. Groceries)",
+  },
   { name: "date", required: false, description: "YYYY-MM-DD" },
   { name: "notes", required: false, description: "Optional" },
 ]
@@ -39,6 +45,7 @@ const COLUMN_ALIASES = {
     "destination",
   ],
   category: ["category", "cat"],
+  subcategory: ["subcategory", "sub category", "sub_category", "subcat"],
   date: ["date", "transaction date", "transaction_date"],
   notes: ["notes", "note", "description", "memo"],
 }
@@ -66,18 +73,26 @@ function mapHeaders(headers) {
 }
 
 function parseExcelDate(value) {
-  if (value == null || value === "") return new Date().toISOString()
+  if (value == null || value === "") return toStoredDate(new Date())
 
   if (typeof value === "number") {
     const parsed = XLSX.SSF.parse_date_code(value)
     if (parsed) {
-      return new Date(parsed.y, parsed.m - 1, parsed.d).toISOString()
+      const dateString = `${parsed.y}-${String(parsed.m).padStart(2, "0")}-${String(parsed.d).padStart(2, "0")}`
+      return toStoredDate(dateString)
+    }
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim()
+    if (normalized) {
+      return toStoredDate(normalized)
     }
   }
 
   const d = new Date(value)
   if (!Number.isNaN(d.getTime())) {
-    return d.toISOString()
+    return toStoredDate(d)
   }
 
   return null
@@ -99,8 +114,16 @@ function resolveAccount(accounts, name) {
 }
 
 function buildRowPayload(row, accounts) {
-  const { amount, type, category, notes, date, from_account_id, to_account_id } =
-    row
+  const {
+    amount,
+    type,
+    category,
+    subcategory,
+    notes,
+    date,
+    from_account_id,
+    to_account_id,
+  } = row
 
   const depositAccount =
     type === "income"
@@ -126,6 +149,7 @@ function buildRowPayload(row, accounts) {
     amount,
     type,
     category: resolvedCategory,
+    subcategory: type === "transfer" ? null : subcategory || null,
     notes,
     date,
     income_source: incomeSource,
@@ -208,6 +232,11 @@ export function parseTransactionRows(rows, accounts = []) {
         ? String(row[mapping.category] ?? "").trim()
         : ""
 
+    const subcategory =
+      mapping.subcategory !== undefined
+        ? String(row[mapping.subcategory] ?? "").trim()
+        : ""
+
     if (type === "expense" && !category) {
       errors.push(`Row ${rowNum}: category is required for expense`)
       return
@@ -231,6 +260,7 @@ export function parseTransactionRows(rows, accounts = []) {
           amount,
           type,
           category,
+          subcategory,
           notes,
           date,
           from_account_id: fromAccount?.account_id ?? null,
@@ -275,9 +305,9 @@ export function downloadImportTemplate(accountNames = []) {
   const accountHint2 = accountNames[1] ?? "GCash"
 
   const sample = [
-    [30000, "income", "", accountHint, "", "2026-06-01", "Payroll"],
-    [350, "expense", accountHint2, "", "Food", "2026-06-02", "Groceries"],
-    [500, "transfer", accountHint, accountHint2, "", "2026-06-03", "To e-wallet"],
+    [30000, "income", "", accountHint, "", "", "2026-06-01", "Payroll"],
+    [350, "expense", accountHint2, "", "Food", "Groceries", "2026-06-02", "Groceries"],
+    [500, "transfer", accountHint, accountHint2, "", "", "2026-06-03", "To e-wallet"],
   ]
 
   const sheet = XLSX.utils.aoa_to_sheet([headers, ...sample])
@@ -287,6 +317,7 @@ export function downloadImportTemplate(accountNames = []) {
     { wch: 16 },
     { wch: 16 },
     { wch: 12 },
+    { wch: 14 },
     { wch: 12 },
     { wch: 20 },
   ]

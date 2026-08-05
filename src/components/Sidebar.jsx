@@ -18,14 +18,16 @@ function Sidebar({
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: "📊" },
     { id: "transactions", label: "Transactions", icon: "💳" },
+    { id: "accounts", label: "Accounts", icon: "🏦" },
     { id: "budget", label: "Budget", icon: "📁" },
     { id: "reports", label: "Reports", icon: "📈" },
+    { id: "settings", label: "Settings", icon: "⚙️" },
   ]
 
   return (
     <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
       <div className="sidebar-top">
-        {!collapsed && <h3>Budget Tracker</h3>}
+        {!collapsed && <h3>KoiNest</h3>}
         <button
           type="button"
           className="sidebar-collapse-btn"

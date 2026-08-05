@@ -1,18 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
 :root,
 [data-theme="light"] {
   color-scheme: light;
 
   --text: #475569;
   --text-h: #0f172a;
-  --bg: #f1f5f9;
+  --bg: #f8fafc;
   --bg-card: #ffffff;
-  --bg-muted: #f8fafc;
+  --bg-muted: #f1f5f9;
   --bg-hover: #f1f5f9;
-  --border: #e2e8f0;
+  --border: #f1f5f9;
   --input-bg: #ffffff;
   --input-border: #cbd5e1;
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
   --accent-text: #ffffff;
   --sidebar-bg: #ffffff;
   --sidebar-text: #0f172a;
@@ -20,19 +22,20 @@
   --sidebar-hover: #f1f5f9;
   --sidebar-active: #e2e8f0;
   --sidebar-border: #e2e8f0;
-  --table-header: #e2e8f0;
+  --table-header: #f1f5f9;
   --income-bg: #dcfce7;
   --income-text: #15803d;
   --expense-bg: #fee2e2;
   --expense-text: #dc2626;
-  --transfer-bg: #dbeafe;
-  --transfer-text: #2563eb;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --transfer-bg: #e0e7ff;
+  --transfer-text: #4f46e5;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -4px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.02);
+  --input-focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
   --chart-track: #e2e8f0;
 
-  --radius: 10px;
-  --radius-sm: 6px;
+  --radius: 14px;
+  --radius-sm: 8px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -40,8 +43,8 @@
   --space-5: 20px;
   --space-6: 24px;
 
-  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
-  --heading: system-ui, "Segoe UI", Roboto, sans-serif;
+  --sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --heading: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 
   font: 16px/1.5 var(--sans);
   color: var(--text);
@@ -56,33 +59,33 @@
   color-scheme: dark;
 
   --text: #94a3b8;
-  --text-h: #f1f5f9;
-  --bg: #0f172a;
-  --bg-card: #1e293b;
-  --bg-muted: #334155;
-  --bg-hover: #334155;
-  --border: #334155;
-  --input-bg: #1e293b;
-  --input-border: #475569;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
+  --text-h: #f8fafc;
+  --bg: #090d16;
+  --bg-card: #111827;
+  --bg-muted: #1f2937;
+  --bg-hover: #1f2937;
+  --border: #1f2937;
+  --input-bg: #111827;
+  --input-border: #374151;
+  --accent: #818cf8;
+  --accent-hover: #6366f1;
   --accent-text: #ffffff;
-  --sidebar-bg: #020617;
-  --sidebar-text: #f1f5f9;
-  --sidebar-muted: #64748b;
-  --sidebar-hover: #1e293b;
-  --sidebar-active: #334155;
-  --sidebar-border: #1e293b;
-  --table-header: #334155;
+  --sidebar-bg: #030712;
+  --sidebar-text: #f9fafb;
+  --sidebar-muted: #6b7280;
+  --sidebar-hover: #111827;
+  --sidebar-active: #1f2937;
+  --sidebar-border: #1f2937;
+  --table-header: #1f2937;
   --income-bg: rgba(34, 197, 94, 0.15);
   --income-text: #4ade80;
   --expense-bg: rgba(239, 68, 68, 0.15);
   --expense-text: #f87171;
-  --transfer-bg: rgba(59, 130, 246, 0.15);
-  --transfer-text: #60a5fa;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 2px 8px rgba(0, 0, 0, 0.35);
-  --chart-track: #334155;
+  --transfer-bg: rgba(99, 102, 241, 0.15);
+  --transfer-text: #818cf8;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  --chart-track: #1f2937;
 }
 
 * {
@@ -141,4 +144,67 @@ input,
 select {
   color: var(--text-h);
   background: var(--input-bg);
+}
+
+/* ── Unified form controls ─────────────────────── */
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+select,
+textarea {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  color: var(--text-h);
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: color-mix(in srgb, var(--text) 55%, transparent);
+}
+
+input:hover:not(:disabled):not(:focus-visible),
+select:hover:not(:disabled):not(:focus-visible),
+textarea:hover:not(:disabled):not(:focus-visible) {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--input-border));
+  background: color-mix(in srgb, var(--accent) 3%, var(--input-bg));
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--input-focus-ring);
+}
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+[data-theme="dark"] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+input[type="date"],
+input[type="datetime-local"] {
+  color-scheme: light;
+}
+
+[data-theme="dark"] input[type="date"],
+[data-theme="dark"] input[type="datetime-local"] {
+  color-scheme: dark;
 }

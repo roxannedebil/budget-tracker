@@ -8,8 +8,8 @@ import {
 } from "recharts"
 import { useChartColors } from "../../hooks/useChartColors"
 import { colorAt } from "../../utils/chartColors"
-import { formatMoney } from "../../utils/transactionStats"
 import EmptyState from "../EmptyState"
+import CategoryBreakdownTooltip from "./CategoryBreakdownTooltip"
 
 function CategoryPieChart({ data, emptyTitle = "No data", emptyMessage }) {
   const colors = useChartColors()
@@ -18,6 +18,7 @@ function CategoryPieChart({ data, emptyTitle = "No data", emptyMessage }) {
     .map((d) => ({
       category: d.category,
       amount: d.total ?? d.amount,
+      subcategories: d.subcategories ?? [],
     }))
 
   if (chartData.length === 0) {
@@ -44,13 +45,9 @@ function CategoryPieChart({ data, emptyTitle = "No data", emptyMessage }) {
           ))}
         </Pie>
         <Tooltip
-          formatter={(value) => formatMoney(value)}
-          contentStyle={{
-            background: colors.card,
-            border: `1px solid ${colors.grid}`,
-            borderRadius: 8,
-            color: colors.textH,
-          }}
+          content={(props) => (
+            <CategoryBreakdownTooltip {...props} colors={colors} />
+          )}
         />
         <Legend />
       </PieChart>

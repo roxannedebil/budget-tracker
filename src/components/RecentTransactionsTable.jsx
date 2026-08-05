@@ -1,3 +1,4 @@
+import { formatCategoryLabel } from "../utils/categoryDisplay"
 import { formatDisplayDate } from "../utils/formatDate"
 import { formatMoney } from "../utils/transactionStats"
 import EmptyState from "./EmptyState"
@@ -38,7 +39,7 @@ function RecentTransactionsTable({ transactions, limit = 10 }) {
                   {t.type}
                 </span>
               </td>
-              <td>{t.category || "—"}</td>
+              <td>{formatCategoryLabel(t.category, t.subcategory)}</td>
               <td
                 className={
                   t.type === "expense"

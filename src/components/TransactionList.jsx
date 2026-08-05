@@ -8,6 +8,7 @@ import {
   FilterDropdown,
   FilterTriggerButton,
 } from "./TransactionFilterPanel"
+import { formatCategoryLabel } from "../utils/categoryDisplay"
 import { formatDisplayDate } from "../utils/formatDate"
 import { formatAccountsCell, getTypeLabel } from "../utils/transactionDisplay"
 import {
@@ -177,7 +178,7 @@ function TransactionList({ transactions, accounts, onUpdated }) {
     }
 
     setPendingDelete(null)
-    onDeleted?.()
+    onUpdated?.()
   }
 
   if (transactions.length === 0) {
@@ -403,7 +404,9 @@ function Cell({ t, columnId, accounts }) {
     case "category":
       return (
         <td className="col-category">
-          <span className="category-name">{t.category}</span>
+          <span className="category-name">
+            {formatCategoryLabel(t.category, t.subcategory)}
+          </span>
         </td>
       )
     case "notes":

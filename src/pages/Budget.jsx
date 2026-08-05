@@ -232,7 +232,7 @@ function Budget({ transactions, loading }) {
             <span>Category</span>
             <CategorySelect
               kind="expense"
-              value={addCategory}
+              category={addCategory}
               categories={categoriesForAdd}
               onChange={handleAddCategoryPick}
               placeholder="Select or add category"

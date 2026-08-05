@@ -139,23 +139,34 @@ function Dashboard({ transactions, loading }) {
               <div className="breakdown-layout">
                 <ExpenseDonutChart data={expenseBreakdown} />
                 <ul className="breakdown-table">
-                  {expenseBreakdown.map((row, i) => (
-                    <li key={row.category}>
-                      <span className="breakdown-cat">
-                        <span
-                          className="breakdown-dot"
-                          style={{ background: colorAt(i) }}
-                        />
-                        {row.category}
-                      </span>
-                      <span className="breakdown-amount expense-text">
-                        {formatMoney(row.amount)}
-                      </span>
-                      <span className="breakdown-pct">
-                        {row.percentage.toFixed(1)}%
-                      </span>
-                    </li>
-                  ))}
+                  {expenseBreakdown.map((row, i) => {
+                    const subHint = row.subcategories?.length
+                      ? row.subcategories
+                          .map(
+                            (s) =>
+                              `${s.subcategory}: ${formatMoney(s.total)}`
+                          )
+                          .join(" · ")
+                      : undefined
+
+                    return (
+                      <li key={row.category} title={subHint}>
+                        <span className="breakdown-cat">
+                          <span
+                            className="breakdown-dot"
+                            style={{ background: colorAt(i) }}
+                          />
+                          {row.category}
+                        </span>
+                        <span className="breakdown-amount expense-text">
+                          {formatMoney(row.amount)}
+                        </span>
+                        <span className="breakdown-pct">
+                          {row.percentage.toFixed(1)}%
+                        </span>
+                      </li>
+                    )
+                  })}
                 </ul>
               </div>
             )}

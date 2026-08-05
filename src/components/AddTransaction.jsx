@@ -4,17 +4,19 @@ import { useMemo, useState } from "react"
 import { supabase } from "../supabaseClient"
 import CategorySelect from "./CategorySelect"
 import {
-  addExpenseCategory,
-  addIncomeCategory,
   getExpenseCategories,
   getIncomeCategories,
+  persistCategorySelection,
 } from "../utils/categories"
+import { toStoredDate } from "../utils/formatDate"
 
 function AddTransaction({ accounts, transactions, onAdd }) {
   const [amount, setAmount] = useState("")
   const [type, setType] = useState("expense")
   const [category, setCategory] = useState("")
+  const [subcategory, setSubcategory] = useState("")
   const [incomeCategory, setIncomeCategory] = useState("")
+  const [incomeSubcategory, setIncomeSubcategory] = useState("")
   const [notes, setNotes] = useState("")
   const [date, setDate] = useState("")
   const [fromAccountId, setFromAccountId] = useState("")
@@ -36,7 +38,9 @@ function AddTransaction({ accounts, transactions, onAdd }) {
   const resetForm = () => {
     setAmount("")
     setCategory("")
+    setSubcategory("")
     setIncomeCategory("")
+    setIncomeSubcategory("")
     setNotes("")
     setType("expense")
     setFromAccountId("")
@@ -44,13 +48,15 @@ function AddTransaction({ accounts, transactions, onAdd }) {
     setDate("")
   }
 
-  const handleCategoryChange = (value, meta) => {
-    setCategory(value)
+  const handleCategoryChange = (cat, sub, meta) => {
+    setCategory(cat)
+    setSubcategory(sub)
     if (meta?.added) setCategoryKey((k) => k + 1)
   }
 
-  const handleIncomeCategoryChange = (value, meta) => {
-    setIncomeCategory(value)
+  const handleIncomeCategoryChange = (cat, sub, meta) => {
+    setIncomeCategory(cat)
+    setIncomeSubcategory(sub)
     if (meta?.added) setCategoryKey((k) => k + 1)
   }
 
@@ -110,11 +116,11 @@ function AddTransaction({ accounts, transactions, onAdd }) {
           : null
 
     if (type === "expense" && category) {
-      addExpenseCategory(category)
+      persistCategorySelection("expense", category, subcategory)
     }
 
     if (type === "income" && incomeCategory) {
-      addIncomeCategory(incomeCategory)
+      persistCategorySelection("income", incomeCategory, incomeSubcategory)
     }
 
     const { error: insertError } = await supabase.from("transactions").insert([
@@ -127,8 +133,14 @@ function AddTransaction({ accounts, transactions, onAdd }) {
             : type === "income"
               ? incomeCategory
               : category,
+        subcategory:
+          type === "transfer"
+            ? null
+            : type === "income"
+              ? incomeSubcategory || null
+              : subcategory || null,
         notes,
-        date: date ? new Date(date).toISOString() : new Date().toISOString(),
+        date: date ? toStoredDate(date) : new Date().toISOString(),
         user_id: user?.id,
         income_source: incomeSource,
         from_account_id:
@@ -204,8 +216,10 @@ function AddTransaction({ accounts, transactions, onAdd }) {
                 <span>Income category</span>
                 <CategorySelect
                   kind="income"
-                  value={incomeCategory}
+                  category={incomeCategory}
+                  subcategory={incomeSubcategory}
                   categories={incomeCategories}
+                  transactions={transactions}
                   onChange={handleIncomeCategoryChange}
                   placeholder="Select or add category"
                 />
@@ -300,8 +314,10 @@ function AddTransaction({ accounts, transactions, onAdd }) {
               <span>Category</span>
               <CategorySelect
                 kind="expense"
-                value={category}
+                category={category}
+                subcategory={subcategory}
                 categories={expenseCategories}
+                transactions={transactions}
                 onChange={handleCategoryChange}
                 placeholder="Select or add category"
               />

@@ -17,17 +17,19 @@ function txRow(t) {
     Date: formatDisplayDate(t.date),
     Type: t.type,
     Category: t.category || "",
+    Subcategory: t.subcategory || "",
     Amount: Number(t.amount),
     Notes: t.notes || "",
   }
 }
 
 export function exportTransactionsCsv(transactions, filename = "transactions.csv") {
-  const headers = ["Date", "Type", "Category", "Amount", "Notes"]
+  const headers = ["Date", "Type", "Category", "Subcategory", "Amount", "Notes"]
   const rows = transactions.map((t) => [
     formatDisplayDate(t.date),
     t.type,
     t.category || "",
+    t.subcategory || "",
     Number(t.amount),
     t.notes || "",
   ])
@@ -117,10 +119,10 @@ export function exportSummaryCsv({
     ...incomeByCategory.map((r) => `${r.category},${r.total}`),
     ``,
     `Transactions`,
-    `Date,Type,Category,Amount,Notes`,
+    `Date,Type,Category,Subcategory,Amount,Notes`,
     ...transactions.map(
       (t) =>
-        `${formatDisplayDate(t.date)},${t.type},${t.category || ""},${t.amount},"${(t.notes || "").replace(/"/g, '""')}"`
+        `${formatDisplayDate(t.date)},${t.type},${t.category || ""},${t.subcategory || ""},${t.amount},"${(t.notes || "").replace(/"/g, '""')}"`
     ),
   ]
 

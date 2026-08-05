@@ -1,4 +1,5 @@
 import { formatDisplayDate } from "./formatDate"
+import { formatCategoryLabel, categorySortKey } from "./categoryDisplay"
 import {
   formatAccountsCell,
   getTypeLabel,
@@ -46,7 +47,7 @@ export function getSortValue(t, columnId, accounts) {
     case "accounts":
       return formatAccountsCell(t, accounts).toLowerCase()
     case "category":
-      return (t.category || "").toLowerCase()
+      return categorySortKey(t.category, t.subcategory)
     case "notes":
       return (t.notes || "").toLowerCase()
     case "type":
@@ -85,7 +86,7 @@ export function formatCellValue(t, columnId, accounts) {
     case "accounts":
       return formatAccountsCell(t, accounts)
     case "category":
-      return t.category
+      return formatCategoryLabel(t.category, t.subcategory)
     case "notes":
       return t.notes || "—"
     case "type":

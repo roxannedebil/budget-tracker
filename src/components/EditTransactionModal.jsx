@@ -4,18 +4,19 @@ import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../supabaseClient"
 import CategorySelect from "./CategorySelect"
 import {
-  addExpenseCategory,
-  addIncomeCategory,
   getExpenseCategories,
   getIncomeCategories,
+  persistCategorySelection,
 } from "../utils/categories"
-import { toDateInputValue } from "../utils/formatDate"
+import { toDateInputValue, toStoredDate } from "../utils/formatDate"
 
 function EditTransactionModal({ transaction, accounts, transactions, onClose, onSaved }) {
   const [amount, setAmount] = useState("")
   const [type, setType] = useState("expense")
   const [category, setCategory] = useState("")
+  const [subcategory, setSubcategory] = useState("")
   const [incomeCategory, setIncomeCategory] = useState("")
+  const [incomeSubcategory, setIncomeSubcategory] = useState("")
   const [notes, setNotes] = useState("")
   const [date, setDate] = useState("")
   const [fromAccountId, setFromAccountId] = useState("")
@@ -31,7 +32,11 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
     setType(txnType)
     setAmount(String(transaction.amount ?? ""))
     setCategory(txnType === "expense" ? transaction.category || "" : "")
+    setSubcategory(txnType === "expense" ? transaction.subcategory || "" : "")
     setIncomeCategory(txnType === "income" ? transaction.category || "" : "")
+    setIncomeSubcategory(
+      txnType === "income" ? transaction.subcategory || "" : ""
+    )
     setNotes(transaction.notes || "")
     setDate(toDateInputValue(transaction.date))
     setFromAccountId(transaction.from_account_id || "")
@@ -49,13 +54,15 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
     [transactions, categoryKey]
   )
 
-  const handleCategoryChange = (value, meta) => {
-    setCategory(value)
+  const handleCategoryChange = (cat, sub, meta) => {
+    setCategory(cat)
+    setSubcategory(sub)
     if (meta?.added) setCategoryKey((k) => k + 1)
   }
 
-  const handleIncomeCategoryChange = (value, meta) => {
-    setIncomeCategory(value)
+  const handleIncomeCategoryChange = (cat, sub, meta) => {
+    setIncomeCategory(cat)
+    setIncomeSubcategory(sub)
     if (meta?.added) setCategoryKey((k) => k + 1)
   }
 
@@ -117,11 +124,11 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
           : null
 
     if (type === "expense" && category) {
-      addExpenseCategory(category)
+      persistCategorySelection("expense", category, subcategory)
     }
 
     if (type === "income" && incomeCategory) {
-      addIncomeCategory(incomeCategory)
+      persistCategorySelection("income", incomeCategory, incomeSubcategory)
     }
 
     const { error: updateError } = await supabase
@@ -135,8 +142,14 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
             : type === "income"
               ? incomeCategory
               : category,
+        subcategory:
+          type === "transfer"
+            ? null
+            : type === "income"
+              ? incomeSubcategory || null
+              : subcategory || null,
         notes,
-        date: date ? new Date(date).toISOString() : new Date().toISOString(),
+        date: date ? toStoredDate(date) : new Date().toISOString(),
         income_source: incomeSource,
         from_account_id:
           type === "expense" || type === "transfer" ? fromAccountId : null,
@@ -218,8 +231,10 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
                   <span>Income category</span>
                   <CategorySelect
                     kind="income"
-                    value={incomeCategory}
+                    category={incomeCategory}
+                    subcategory={incomeSubcategory}
                     categories={incomeCategories}
+                    transactions={transactions}
                     onChange={handleIncomeCategoryChange}
                     placeholder="Select or add category"
                   />
@@ -314,8 +329,10 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
                 <span>Category</span>
                 <CategorySelect
                   kind="expense"
-                  value={category}
+                  category={category}
+                  subcategory={subcategory}
                   categories={expenseCategories}
+                  transactions={transactions}
                   onChange={handleCategoryChange}
                   placeholder="Select or add category"
                 />

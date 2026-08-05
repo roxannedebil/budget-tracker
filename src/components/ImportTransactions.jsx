@@ -1,6 +1,6 @@
 import { useRef, useState } from "react"
 import { supabase } from "../supabaseClient"
-import { addCustomCategory } from "../utils/categories"
+import { persistCategorySelection } from "../utils/categories"
 import {
   downloadImportTemplate,
   readTransactionsFromFile,
@@ -55,7 +55,10 @@ function ImportTransactions({ accounts, onImport }) {
 
       rows.forEach((row) => {
         if (row.type === "expense" && row.category) {
-          addCustomCategory(row.category)
+          persistCategorySelection("expense", row.category, row.subcategory)
+        }
+        if (row.type === "income" && row.category) {
+          persistCategorySelection("income", row.category, row.subcategory)
         }
       })
 

@@ -1,6 +1,5 @@
 import AddTransaction from "../components/AddTransaction"
 import ImportTransactions from "../components/ImportTransactions"
-import ManageAccounts from "../components/ManageAccounts"
 import TransactionList from "../components/TransactionList"
 import StatCard from "../components/StatCard"
 import { getPayrollIncome } from "../utils/accountStats"
@@ -57,11 +56,6 @@ function Transactions({
       </div>
 
       <div className="txn-toolbar module-panel">
-        <ManageAccounts
-          accounts={accounts}
-          transactions={transactions}
-          onUpdate={fetchAccounts}
-        />
         <ImportTransactions accounts={accounts} onImport={refresh} />
       </div>
 

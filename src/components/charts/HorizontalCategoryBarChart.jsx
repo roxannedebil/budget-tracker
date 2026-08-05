@@ -10,14 +10,18 @@ import {
 } from "recharts"
 import { useChartColors } from "../../hooks/useChartColors"
 import { colorAt } from "../../utils/chartColors"
-import { formatMoney } from "../../utils/transactionStats"
 import EmptyState from "../EmptyState"
+import CategoryBreakdownTooltip from "./CategoryBreakdownTooltip"
 
 function HorizontalCategoryBarChart({ data }) {
   const colors = useChartColors()
   const chartData = [...data]
     .sort((a, b) => b.total - a.total)
-    .map((d) => ({ name: d.category, amount: d.total }))
+    .map((d) => ({
+      name: d.category,
+      amount: d.total,
+      subcategories: d.subcategories ?? [],
+    }))
 
   if (chartData.length === 0) {
     return (
@@ -53,13 +57,9 @@ function HorizontalCategoryBarChart({ data }) {
           tickLine={false}
         />
         <Tooltip
-          formatter={(value) => formatMoney(value)}
-          contentStyle={{
-            background: colors.card,
-            border: `1px solid ${colors.grid}`,
-            borderRadius: 8,
-            color: colors.textH,
-          }}
+          content={(props) => (
+            <CategoryBreakdownTooltip {...props} colors={colors} />
+          )}
         />
         <Bar dataKey="amount" radius={[0, 4, 4, 0]} barSize={18}>
           {chartData.map((entry, i) => (

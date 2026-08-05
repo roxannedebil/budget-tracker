@@ -8,8 +8,8 @@ import {
 } from "recharts"
 import { useChartColors } from "../../hooks/useChartColors"
 import { colorAt } from "../../utils/chartColors"
-import { formatMoney } from "../../utils/transactionStats"
 import EmptyState from "../EmptyState"
+import CategoryBreakdownTooltip from "./CategoryBreakdownTooltip"
 
 function ExpenseDonutChart({ data }) {
   const colors = useChartColors()
@@ -43,13 +43,9 @@ function ExpenseDonutChart({ data }) {
           ))}
         </Pie>
         <Tooltip
-          formatter={(value) => formatMoney(value)}
-          contentStyle={{
-            background: colors.card,
-            border: `1px solid ${colors.grid}`,
-            borderRadius: 8,
-            color: colors.textH,
-          }}
+          content={(props) => (
+            <CategoryBreakdownTooltip {...props} colors={colors} />
+          )}
         />
         <Legend
           formatter={(value, entry) => {

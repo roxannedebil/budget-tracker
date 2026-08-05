@@ -42,10 +42,58 @@ export function getSpentFrom(accountId, transactions) {
     .reduce((sum, t) => sum + Number(t.amount), 0)
 }
 
+export function getIncomeTo(accountId, transactions) {
+  return transactions
+    .filter((t) => t.type === "income" && t.to_account_id === accountId)
+    .reduce((sum, t) => sum + Number(t.amount), 0)
+}
+
+export function getTransactionsForAccount(accountId, transactions) {
+  if (!accountId) return []
+
+  return transactions.filter((t) => {
+    if (t.type === "income") return t.to_account_id === accountId
+    if (t.type === "expense") return t.from_account_id === accountId
+    if (t.type === "transfer") {
+      return (
+        t.from_account_id === accountId || t.to_account_id === accountId
+      )
+    }
+    return false
+  })
+}
+
+export function groupTransactionsByMonthLabel(transactions) {
+  const sorted = [...transactions].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  )
+
+  const groups = []
+  let current = null
+
+  for (const t of sorted) {
+    const d = new Date(t.date)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+    const label = d.toLocaleString("default", {
+      month: "long",
+      year: "numeric",
+    })
+
+    if (!current || current.key !== key) {
+      current = { key, label, items: [] }
+      groups.push(current)
+    }
+    current.items.push(t)
+  }
+
+  return groups
+}
+
 export function getAccountActivity(accounts, transactions) {
   return accounts.map((account) => ({
     ...account,
     balance: getAccountBalance(account.account_id, transactions),
+    income: getIncomeTo(account.account_id, transactions),
     transferredIn: getTransferredTo(account.account_id, transactions),
     transferredOut: getTransferredFrom(account.account_id, transactions),
     spent: getSpentFrom(account.account_id, transactions),

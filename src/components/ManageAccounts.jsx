@@ -1,7 +1,9 @@
 import { useState } from "react"
 import { supabase } from "../supabaseClient"
 import { ACCOUNT_TYPES, getAccountIcon } from "../utils/accounts"
+import { getAccountBalance } from "../utils/accountStats"
 import { isAccountInUse } from "../utils/accountUsage"
+import { formatMoney } from "../utils/transactionStats"
 
 function ManageAccounts({ accounts, transactions, onUpdate }) {
   const [name, setName] = useState("")
@@ -105,6 +107,10 @@ function ManageAccounts({ accounts, transactions, onUpdate }) {
             {accounts.map((account) => {
               const inUse = isAccountInUse(account.account_id, transactions)
               const isEditing = editingId === account.account_id
+              const balance = getAccountBalance(
+                account.account_id,
+                transactions
+              )
 
               return (
                 <li key={account.account_id} className="account-chip">
@@ -138,8 +144,13 @@ function ManageAccounts({ accounts, transactions, onUpdate }) {
                     </>
                   ) : (
                     <>
-                      <span>
+                      <span className="account-chip-main">
                         {getAccountIcon(account.account_type)} {account.name}
+                      </span>
+                      <span
+                        className={`account-chip-balance ${balance >= 0 ? "positive" : "negative"}`}
+                      >
+                        {formatMoney(balance)}
                       </span>
                       <button
                         type="button"
@@ -176,25 +187,31 @@ function ManageAccounts({ accounts, transactions, onUpdate }) {
         )}
 
         <form className="account-form" onSubmit={handleAdd}>
-          <input
-            type="text"
-            placeholder="Name (e.g. BDO Payroll, GCash)"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-          <select
-            value={accountType}
-            onChange={(e) => setAccountType(e.target.value)}
-          >
-            {ACCOUNT_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
+          <label className="form-field">
+            <span>Account name</span>
+            <input
+              type="text"
+              placeholder="e.g. BDO Payroll, GCash"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </label>
+          <label className="form-field">
+            <span>Type</span>
+            <select
+              value={accountType}
+              onChange={(e) => setAccountType(e.target.value)}
+            >
+              {ACCOUNT_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <button type="submit" className="btn-sm" disabled={submitting}>
-            {submitting ? "…" : "Add"}
+            {submitting ? "Adding…" : "Add account"}
           </button>
         </form>
 
