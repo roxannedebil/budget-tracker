@@ -99,8 +99,9 @@ function Auth({ theme, onToggleTheme }) {
 
     setForgotSending(true)
 
+    const redirectTo = window.location.origin + window.location.pathname
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: window.location.origin,
+      redirectTo,
     })
 
     setForgotSending(false)

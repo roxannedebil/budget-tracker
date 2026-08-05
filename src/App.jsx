@@ -88,13 +88,32 @@ function App() {
   }, [])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: current } }) => {
+    const initAuth = async () => {
+      let current = null
+      const isRedirect = window.location.search.includes("type=") || window.location.search.includes("access_token=")
+
+      if (isRedirect && supabase.auth.getSessionFromUrl) {
+        const { data, error } = await supabase.auth.getSessionFromUrl()
+        if (error) {
+          console.error("Auth redirect error:", error.message)
+        }
+        current = data?.session ?? null
+        window.history.replaceState({}, document.title, window.location.pathname)
+      } else {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+        current = session
+      }
+
       setSession(current)
       if (current?.user?.id) {
         fetchProfile(current.user.id)
       }
       setAuthLoading(false)
-    })
+    }
+
+    initAuth()
 
     const {
       data: { subscription },
