@@ -128,7 +128,7 @@ function Auth({ theme, onToggleTheme }) {
       <div className="auth-card">
         <div className="auth-brand">
           <span className="auth-logo">💰</span>
-          <h1>Budget Tracker</h1>
+          <h1>Finance Tracker</h1>
           <p>
             {isSignUp
               ? "Create an account to start tracking"
