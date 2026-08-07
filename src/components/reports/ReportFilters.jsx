@@ -34,7 +34,7 @@ function ReportFilters({
     <div className="card report-filters-card module-card">
       <div className="report-filters-top">
         <div>
-          <h2 className="report-filters-title">Filters & export</h2>
+          <h2 className="report-filters-title">Filters & Export</h2>
           <p className="report-range-display">
             {formatFilterDateRange(filters)}
           </p>

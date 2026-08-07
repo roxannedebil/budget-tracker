@@ -118,10 +118,22 @@ function TransactionList({ transactions, accounts, onUpdated }) {
     setFilterOpen(false)
   }
 
+  const isFiltered = hasActiveFilters(filters)
+  const isCustomSort = sort.column !== "date" || sort.direction !== "desc"
+  const isModified = isFiltered || isCustomSort
+
   const clearFilters = () => {
     const empty = getDefaultFilters()
     setDraftFilters(empty)
     setFilters(empty)
+    setFilterOpen(false)
+  }
+
+  const resetFiltersAndSort = () => {
+    const empty = getDefaultFilters()
+    setDraftFilters(empty)
+    setFilters(empty)
+    setSort({ column: "date", direction: "desc" })
     setFilterOpen(false)
   }
 
@@ -218,6 +230,31 @@ function TransactionList({ transactions, accounts, onUpdated }) {
               />
             )}
           </div>
+
+          {isModified && (
+            <button
+              type="button"
+              className="btn-clear-filters-sort"
+              onClick={resetFiltersAndSort}
+              title="Reset filters and table sort order"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+              Clear filters & sort
+            </button>
+          )}
+
           <span className="transaction-count">
             {filtered.length} of {transactions.length}
           </span>

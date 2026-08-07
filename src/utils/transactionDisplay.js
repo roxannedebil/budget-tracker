@@ -15,7 +15,6 @@ export function formatAccountsCell(t, accounts) {
 }
 
 export function getTypeLabel(t) {
-  if (t.type === "income" && t.income_source === "payroll") return "payroll"
   return t.type ?? ""
 }
 

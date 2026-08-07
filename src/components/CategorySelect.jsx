@@ -1,15 +1,17 @@
-﻿import { useMemo } from "react"
+import { useMemo } from "react"
 import { getSubcategoriesForCategory } from "../utils/categories"
 
 function CategorySelect({
-  category,
+  category = "",
   subcategory = "",
-  categories,
+  categories = [],
   transactions = [],
   onChange,
   required = true,
   kind = "expense",
   placeholder = "Select category",
+  showSubcategory = true,
+  disabled = false,
 }) {
   const subcategories = useMemo(
     () => getSubcategoriesForCategory(kind, category, transactions),
@@ -25,7 +27,7 @@ function CategorySelect({
     )
   }, [categories, kind])
 
-  const emit = (cat, sub) => onChange(cat, sub || "")
+  const emit = (cat, sub) => onChange?.(cat, sub || "")
 
   const handleMainSelect = (e) => {
     emit(e.target.value, "")
@@ -43,12 +45,13 @@ function CategorySelect({
     )
   }
 
-  return (
-    <div className="category-select-stack">
+  if (!showSubcategory) {
+    return (
       <select
         value={category}
         onChange={handleMainSelect}
         required={required && !category}
+        disabled={disabled}
       >
         <option value="">{placeholder}</option>
         {allCategories.map((cat) => (
@@ -57,23 +60,52 @@ function CategorySelect({
           </option>
         ))}
       </select>
+    )
+  }
 
-      {category && (
+  return (
+    <>
+      <label className="form-field">
+        <span>Category</span>
+        <select
+          value={category}
+          onChange={handleMainSelect}
+          required={required && !category}
+          disabled={disabled}
+        >
+          <option value="">{placeholder}</option>
+          {allCategories.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="form-field">
+        <span>Subcategory</span>
         <select
           value={subcategory}
           onChange={handleSubSelect}
           className="subcategory-select"
           aria-label="Subcategory"
+          disabled={disabled || !category}
         >
-          <option value="">No subcategory</option>
-          {subcategories.map((sub) => (
-            <option key={sub} value={sub}>
-              {sub}
-            </option>
-          ))}
+          {!category ? (
+            <option value="">Select category first</option>
+          ) : (
+            <>
+              <option value="">No subcategory</option>
+              {subcategories.map((sub) => (
+                <option key={sub} value={sub}>
+                  {sub}
+                </option>
+              ))}
+            </>
+          )}
         </select>
-      )}
-    </div>
+      </label>
+    </>
   )
 }
 

@@ -160,7 +160,12 @@ function buildRowPayload(row, accounts) {
 
 export function parseTransactionRows(rows, accounts = []) {
   if (!rows.length) {
-    return { rows: [], errors: ["The file is empty."] }
+    return {
+      rows: [],
+      errors: ["The file is empty."],
+      previewRows: [],
+      stats: { totalRows: 0, validCount: 0, invalidCount: 0, totalIncome: 0, totalExpense: 0, totalTransfer: 0 },
+    }
   }
 
   const [headerRow, ...dataRows] = rows
@@ -173,57 +178,72 @@ export function parseTransactionRows(rows, accounts = []) {
       errors: [
         `Missing required column(s): ${missing.join(", ")}. Required: amount, type.`,
       ],
+      previewRows: [],
+      stats: { totalRows: 0, validCount: 0, invalidCount: 0, totalIncome: 0, totalExpense: 0, totalTransfer: 0 },
     }
   }
 
-  const parsed = []
-  const errors = []
+  const validRows = []
+  const summaryErrors = []
+  const previewRows = []
+
+  let totalIncome = 0
+  let totalExpense = 0
+  let totalTransfer = 0
 
   dataRows.forEach((row, index) => {
     const rowNum = index + 2
     const isEmpty = row.every((cell) => cell == null || String(cell).trim() === "")
     if (isEmpty) return
 
+    const rowErrors = []
+
     const amountRaw = row[mapping.amount]
     const amount = Number(amountRaw)
     if (!amountRaw && amountRaw !== 0) {
-      errors.push(`Row ${rowNum}: amount is required`)
-      return
-    }
-    if (Number.isNaN(amount) || amount < 0) {
-      errors.push(`Row ${rowNum}: amount must be a positive number`)
-      return
+      rowErrors.push("Amount is required")
+    } else if (Number.isNaN(amount) || amount < 0) {
+      rowErrors.push("Amount must be a positive number")
     }
 
-    const type = normalizeType(row[mapping.type])
+    const rawType = row[mapping.type]
+    const type = normalizeType(rawType)
     if (!type) {
-      errors.push(`Row ${rowNum}: type must be income, expense, or transfer`)
-      return
+      rowErrors.push(`Invalid type "${rawType ?? ""}" (must be income, expense, or transfer)`)
     }
 
     const fromName =
-      mapping.from_account !== undefined ? row[mapping.from_account] : ""
+      mapping.from_account !== undefined ? String(row[mapping.from_account] ?? "").trim() : ""
     const toName =
-      mapping.to_account !== undefined ? row[mapping.to_account] : ""
+      mapping.to_account !== undefined ? String(row[mapping.to_account] ?? "").trim() : ""
     const fromAccount = resolveAccount(accounts, fromName)
     const toAccount = resolveAccount(accounts, toName)
 
-    if (type === "income" && !toAccount) {
-      errors.push(`Row ${rowNum}: to_account is required for income`)
-      return
-    }
-    if (type === "expense" && !fromAccount) {
-      errors.push(`Row ${rowNum}: from_account is required for expense`)
-      return
-    }
-    if (type === "transfer") {
-      if (!fromAccount || !toAccount) {
-        errors.push(`Row ${rowNum}: from_account and to_account required for transfer`)
-        return
+    if (type === "income") {
+      if (!toName) {
+        rowErrors.push("to_account is required for income")
+      } else if (!toAccount) {
+        rowErrors.push(`Account "${toName}" not found in your accounts`)
       }
-      if (fromAccount.account_id === toAccount.account_id) {
-        errors.push(`Row ${rowNum}: from and to accounts must differ`)
-        return
+    } else if (type === "expense") {
+      if (!fromName) {
+        rowErrors.push("from_account is required for expense")
+      } else if (!fromAccount) {
+        rowErrors.push(`Account "${fromName}" not found in your accounts`)
+      }
+    } else if (type === "transfer") {
+      if (!fromName || !toName) {
+        rowErrors.push("from_account and to_account are required for transfer")
+      } else {
+        if (!fromAccount) {
+          rowErrors.push(`From account "${fromName}" not found`)
+        }
+        if (!toAccount) {
+          rowErrors.push(`To account "${toName}" not found`)
+        }
+        if (fromAccount && toAccount && fromAccount.account_id === toAccount.account_id) {
+          rowErrors.push("From and To accounts must be different")
+        }
       }
     }
 
@@ -238,24 +258,29 @@ export function parseTransactionRows(rows, accounts = []) {
         : ""
 
     if (type === "expense" && !category) {
-      errors.push(`Row ${rowNum}: category is required for expense`)
-      return
+      rowErrors.push("Category is required for expense")
     }
 
     const dateIndex = mapping.date
+    const rawDate = dateIndex !== undefined ? row[dateIndex] : null
     const date =
-      dateIndex !== undefined ? parseExcelDate(row[dateIndex]) : new Date().toISOString()
+      rawDate != null && String(rawDate).trim() !== ""
+        ? parseExcelDate(rawDate)
+        : toStoredDate(new Date())
+
     if (date === null) {
-      errors.push(`Row ${rowNum}: invalid date (use YYYY-MM-DD)`)
-      return
+      rowErrors.push("Invalid date format (use YYYY-MM-DD)")
     }
 
     const notesIndex = mapping.notes
     const notes =
       notesIndex !== undefined ? String(row[notesIndex] ?? "").trim() : ""
 
-    parsed.push(
-      buildRowPayload(
+    const isValid = rowErrors.length === 0
+    let payload = null
+
+    if (isValid) {
+      payload = buildRowPayload(
         {
           amount,
           type,
@@ -268,14 +293,62 @@ export function parseTransactionRows(rows, accounts = []) {
         },
         accounts
       )
-    )
+      validRows.push(payload)
+
+      if (type === "income") totalIncome += amount
+      else if (type === "expense") totalExpense += amount
+      else if (type === "transfer") totalTransfer += amount
+    } else {
+      rowErrors.forEach((err) => {
+        summaryErrors.push(`Row ${rowNum}: ${err}`)
+      })
+    }
+
+    previewRows.push({
+      rowNum,
+      isValid,
+      errors: rowErrors,
+      raw: {
+        amount: amountRaw,
+        type: rawType,
+        from_account: fromName,
+        to_account: toName,
+        category,
+        subcategory,
+        date: rawDate,
+        notes,
+      },
+      parsed: {
+        amount: isValid ? amount : amountRaw,
+        type: type || rawType,
+        fromAccountName: fromAccount?.name || fromName || "—",
+        toAccountName: toAccount?.name || toName || "—",
+        category: category || (type === "transfer" ? "Transfer" : "—"),
+        subcategory: subcategory || "—",
+        date: date || "—",
+        notes: notes || "—",
+        payload,
+      },
+    })
   })
 
-  if (!parsed.length && !errors.length) {
-    errors.push("No transaction rows found in the file.")
+  if (!previewRows.length && !summaryErrors.length) {
+    summaryErrors.push("No transaction rows found in the file.")
   }
 
-  return { rows: parsed, errors }
+  return {
+    rows: validRows,
+    errors: summaryErrors,
+    previewRows,
+    stats: {
+      totalRows: previewRows.length,
+      validCount: validRows.length,
+      invalidCount: previewRows.length - validRows.length,
+      totalIncome,
+      totalExpense,
+      totalTransfer,
+    },
+  }
 }
 
 export function readTransactionsFromFile(file, accounts = []) {

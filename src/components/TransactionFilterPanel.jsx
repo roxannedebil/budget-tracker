@@ -87,7 +87,6 @@ export function FilterDropdown({ filters, onChange, onClear, onApply }) {
             <option value="">All types</option>
             <option value="expense">Expense</option>
             <option value="income">Income</option>
-            <option value="payroll">Payroll</option>
             <option value="transfer">Transfer</option>
           </select>
         </label>

@@ -170,20 +170,20 @@ function Settings({ transactions = [] }) {
 
         {/* Add Category Form */}
         <form className="settings-add-cat-form" onSubmit={handleAddCategory}>
-          <input
-            id="settings-new-category-input"
-            type="text"
-            placeholder={`New ${kind} category name…`}
-            value={newCatName}
-            onChange={(e) => {
-              setNewCatName(e.target.value)
-              if (catError) setCatError("")
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") { e.preventDefault(); handleAddCategory(e) }
-            }}
-          />
-          <button id="settings-add-category-btn" type="submit" className="settings-add-btn">
+          <label className="form-field settings-add-cat-field">
+            <span>New {kind} category</span>
+            <input
+              id="settings-new-category-input"
+              type="text"
+              placeholder={`e.g. ${kind === "expense" ? "Food, Transport, Bills" : "Salary, Freelance, Gifts"}`}
+              value={newCatName}
+              onChange={(e) => {
+                setNewCatName(e.target.value)
+                if (catError) setCatError("")
+              }}
+            />
+          </label>
+          <button id="settings-add-category-btn" type="submit" className="settings-add-btn btn-sm">
             + Add category
           </button>
         </form>
@@ -285,7 +285,7 @@ function Settings({ transactions = [] }) {
                             <input
                               id={`settings-new-sub-input-${cat}`}
                               type="text"
-                              placeholder={`New subcategory for "${cat}"…`}
+                              placeholder={`Subcategory name…`}
                               value={newSubName}
                               autoFocus
                               onChange={(e) => {
@@ -293,14 +293,33 @@ function Settings({ transactions = [] }) {
                                 if (subError) setSubError("")
                               }}
                               onKeyDown={(e) => {
-                                if (e.key === "Enter") { e.preventDefault(); handleAddSubcategory(cat) }
-                                if (e.key === "Escape") { setAddingSubFor(null); setNewSubName(""); setSubError("") }
+                                if (e.key === "Enter") {
+                                  e.preventDefault()
+                                  handleAddSubcategory(cat)
+                                }
+                                if (e.key === "Escape") {
+                                  setAddingSubFor(null)
+                                  setNewSubName("")
+                                  setSubError("")
+                                }
                               }}
                             />
-                            <button type="button" className="chip-action save" onClick={() => handleAddSubcategory(cat)}>
+                            <button
+                              type="button"
+                              className="btn-sm settings-sub-save-btn"
+                              onClick={() => handleAddSubcategory(cat)}
+                            >
                               Save
                             </button>
-                            <button type="button" className="chip-action" onClick={() => { setAddingSubFor(null); setNewSubName(""); setSubError("") }}>
+                            <button
+                              type="button"
+                              className="btn-sm ghost"
+                              onClick={() => {
+                                setAddingSubFor(null)
+                                setNewSubName("")
+                                setSubError("")
+                              }}
+                            >
                               Cancel
                             </button>
                           </div>

@@ -16,6 +16,12 @@ export function getBalance(transactions) {
   return getIncome(transactions) - getExpenses(transactions)
 }
 
+export function getTransfers(transactions) {
+  return transactions
+    .filter((t) => t.type === "transfer")
+    .reduce((sum, t) => sum + Number(t.amount), 0)
+}
+
 export function filterByMonth(transactions, year, month) {
   return transactions.filter((t) => {
     const d = new Date(t.date)

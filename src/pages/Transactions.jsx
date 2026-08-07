@@ -2,12 +2,12 @@ import AddTransaction from "../components/AddTransaction"
 import ImportTransactions from "../components/ImportTransactions"
 import TransactionList from "../components/TransactionList"
 import StatCard from "../components/StatCard"
-import { getPayrollIncome } from "../utils/accountStats"
 import {
   formatMoney,
   getBalance,
   getExpenses,
   getIncome,
+  getTransfers,
 } from "../utils/transactionStats"
 
 function Transactions({
@@ -19,7 +19,7 @@ function Transactions({
 }) {
   const income = getIncome(transactions)
   const expenses = getExpenses(transactions)
-  const payroll = getPayrollIncome(transactions)
+  const transfers = getTransfers(transactions)
 
   const refresh = () => {
     fetchTransactions()
@@ -30,10 +30,10 @@ function Transactions({
     <div className="page transactions-page module-page">
       <div className="stat-grid stat-grid-4 kpi-grid">
         <StatCard
-          icon="💵"
-          label="Payroll"
-          value={formatMoney(payroll)}
-          variant="income"
+          icon="⚖️"
+          label="Current balance"
+          value={formatMoney(getBalance(transactions))}
+          variant="balance"
         />
         <StatCard
           icon="📥"
@@ -48,14 +48,14 @@ function Transactions({
           variant="expense"
         />
         <StatCard
-          icon="⚖️"
-          label="Balance"
-          value={formatMoney(getBalance(transactions))}
-          variant="balance"
+          icon="↔️"
+          label="Transfers"
+          value={formatMoney(transfers)}
+          variant="transfer"
         />
       </div>
 
-      <div className="txn-toolbar module-panel">
+      <div className="import-excel-section">
         <ImportTransactions accounts={accounts} onImport={refresh} />
       </div>
 
@@ -65,19 +65,11 @@ function Transactions({
         onAdd={refresh}
       />
 
-      <div className="card module-card section-card">
-        <div className="card-header">
-          <h2>All transactions</h2>
-          {!loading && (
-            <span className="chip">{transactions.length} total</span>
-          )}
-        </div>
-        <TransactionList
-          transactions={transactions}
-          accounts={accounts}
-          onUpdated={refresh}
-        />
-      </div>
+      <TransactionList
+        transactions={transactions}
+        accounts={accounts}
+        onUpdated={refresh}
+      />
     </div>
   )
 }

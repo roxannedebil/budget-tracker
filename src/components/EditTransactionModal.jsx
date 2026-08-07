@@ -3,6 +3,7 @@ import "../App.css"
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../supabaseClient"
 import CategorySelect from "./CategorySelect"
+import DatePicker from "./DatePicker"
 import {
   getExpenseCategories,
   getIncomeCategories,
@@ -181,27 +182,27 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
       >
         <div className="edit-txn-header">
           <h2 id="edit-txn-title">Edit transaction</h2>
-          <div className="type-toggle" role="group" aria-label="Transaction type">
+          <div className="type-toggle-segmented" role="group" aria-label="Transaction type">
             <button
               type="button"
               className={type === "expense" ? "active expense" : ""}
               onClick={() => setType("expense")}
             >
-              Expense
+              <span className="type-dot expense"></span> Expense
             </button>
             <button
               type="button"
               className={type === "income" ? "active income" : ""}
               onClick={() => setType("income")}
             >
-              Income
+              <span className="type-dot income"></span> Income
             </button>
             <button
               type="button"
               className={type === "transfer" ? "active transfer" : ""}
               onClick={() => setType("transfer")}
             >
-              Transfer
+              <span className="type-dot transfer"></span> Transfer
             </button>
           </div>
         </div>
@@ -209,9 +210,65 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
         {accounts.length === 0 ? (
           <p className="inline-alert error">Add an account first.</p>
         ) : (
-          <form onSubmit={handleSubmit} className="transaction-form compact">
+          <form onSubmit={handleSubmit} className="transaction-form-grid">
+            {type === "expense" && (
+              <>
+                <label className="form-field">
+                  <span>Date</span>
+                  <DatePicker value={date} onChange={setDate} />
+                </label>
+
+                <label className="form-field">
+                  <span>Spend from</span>
+                  <select
+                    value={fromAccountId}
+                    onChange={(e) => setFromAccountId(e.target.value)}
+                    required
+                  >
+                    <option value="">Select account</option>
+                    {accounts.map((a) => (
+                      <option key={a.account_id} value={a.account_id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <CategorySelect
+                  kind="expense"
+                  category={category}
+                  subcategory={subcategory}
+                  categories={expenseCategories}
+                  transactions={transactions}
+                  onChange={handleCategoryChange}
+                  placeholder="Select category"
+                />
+
+                <label className="form-field">
+                  <span>Amount</span>
+                  <div className="amount-input">
+                    <span className="currency">₱</span>
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                </label>
+              </>
+            )}
+
             {type === "income" && (
               <>
+                <label className="form-field">
+                  <span>Date</span>
+                  <DatePicker value={date} onChange={setDate} />
+                </label>
+
                 <label className="form-field">
                   <span>Add to account</span>
                   <select
@@ -227,41 +284,58 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
                     ))}
                   </select>
                 </label>
+
+                <CategorySelect
+                  kind="income"
+                  category={incomeCategory}
+                  subcategory={incomeSubcategory}
+                  categories={incomeCategories}
+                  transactions={transactions}
+                  onChange={handleIncomeCategoryChange}
+                  placeholder="Select category"
+                />
+
                 <label className="form-field">
-                  <span>Income category</span>
-                  <CategorySelect
-                    kind="income"
-                    category={incomeCategory}
-                    subcategory={incomeSubcategory}
-                    categories={incomeCategories}
-                    transactions={transactions}
-                    onChange={handleIncomeCategoryChange}
-                    placeholder="Select or add category"
-                  />
+                  <span>Amount</span>
+                  <div className="amount-input">
+                    <span className="currency">₱</span>
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                  </div>
                 </label>
               </>
             )}
 
-            {type === "expense" && (
-              <label className="form-field">
-                <span>Spend from</span>
-                <select
-                  value={fromAccountId}
-                  onChange={(e) => setFromAccountId(e.target.value)}
-                  required
-                >
-                  <option value="">Select account</option>
-                  {accounts.map((a) => (
-                    <option key={a.account_id} value={a.account_id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-
             {type === "transfer" && (
               <>
+                <label className="form-field">
+                  <span>Date</span>
+                  <DatePicker value={date} onChange={setDate} />
+                </label>
+
+                <label className="form-field">
+                  <span>Amount</span>
+                  <div className="amount-input">
+                    <span className="currency">₱</span>
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                </label>
+
                 <label className="form-field">
                   <span>From</span>
                   <select
@@ -277,6 +351,7 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
                     ))}
                   </select>
                 </label>
+
                 <label className="form-field">
                   <span>To</span>
                   <select
@@ -299,60 +374,21 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
               </>
             )}
 
-            <label className="form-field">
-              <span>Amount</span>
-              <div className="amount-input">
-                <span className="currency">₱</span>
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-            </label>
-
-            <label className="form-field">
-              <span>Date</span>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-            </label>
-
-            {type === "expense" && (
-              <label className="form-field">
-                <span>Category</span>
-                <CategorySelect
-                  kind="expense"
-                  category={category}
-                  subcategory={subcategory}
-                  categories={expenseCategories}
-                  transactions={transactions}
-                  onChange={handleCategoryChange}
-                  placeholder="Select or add category"
-                />
-              </label>
-            )}
-
-            <label className="form-field form-field-notes">
+            {/* Full-width Notes Field */}
+            <label className="form-field form-field-full">
               <span>Notes</span>
               <input
                 type="text"
-                placeholder="Optional"
+                placeholder="Optional notes or description"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
             </label>
 
-            <div className="edit-txn-actions">
+            <div className="txn-form-footer modal-actions-footer">
               <button
                 type="button"
-                className="btn-secondary"
+                className="btn-secondary btn-sm"
                 onClick={onClose}
                 disabled={submitting}
               >
@@ -360,7 +396,7 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
               </button>
               <button
                 type="submit"
-                className={`submit-btn inline ${type}`}
+                className={`submit-btn primary ${type}`}
                 disabled={submitting}
               >
                 {submitting ? "Saving…" : "Save changes"}
