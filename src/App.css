@@ -348,9 +348,11 @@
 }
 
 .nav-icon {
-  font-size: 1.1rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  color: inherit;
 }
 
 .nav-label {
@@ -1139,8 +1141,9 @@ td {
 }
 
 .empty-icon {
-  font-size: 1.5rem;
+  display: inline-flex;
   opacity: 0.6;
+  color: var(--text-muted);
 }
 
 .empty-state p {
@@ -1559,8 +1562,15 @@ td {
 }
 
 .account-overview-icon {
-  font-size: 1.25rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  color: var(--text-muted);
+  flex-shrink: 0;
 }
 
 .account-overview-title {
@@ -1803,9 +1813,15 @@ td {
 }
 
 .auth-logo {
-  font-size: 2.5rem;
-  display: block;
-  margin-bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 8px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-muted));
+  color: var(--accent);
 }
 
 .auth-brand h1 {
@@ -2644,10 +2660,12 @@ td {
 .theme-toggle-option {
   position: relative;
   z-index: 1;
-  font-size: 0.9rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   opacity: 0.45;
-  transition: opacity 0.15s;
+  color: var(--text-muted);
+  transition: opacity 0.15s, color 0.15s;
   pointer-events: none;
 }
 
@@ -3108,8 +3126,10 @@ td {
 }
 
 .profile-section-icon {
-  font-size: 1.125rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
 }
 
 /* ── Settings page ───────────────────────────────── */
@@ -3134,8 +3154,6 @@ td {
 }
 
 .settings-header-icon {
-  font-size: 2rem;
-  line-height: 1;
   flex-shrink: 0;
   width: 52px;
   height: 52px;
@@ -3144,6 +3162,7 @@ td {
   justify-content: center;
   background: var(--bg-muted);
   border-radius: var(--radius-sm);
+  color: var(--text-muted);
 }
 
 .settings-header-text h1 {
@@ -3208,8 +3227,9 @@ td {
 }
 
 .settings-tab-icon {
-  font-size: 1rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  color: inherit;
 }
 
 .settings-tab-count {
@@ -3450,9 +3470,9 @@ td {
 }
 
 .settings-empty-icon {
-  font-size: 2rem;
-  line-height: 1;
+  display: inline-flex;
   opacity: 0.7;
+  color: var(--text-muted);
 }
 
 .settings-empty-title {
@@ -3610,9 +3630,9 @@ td {
 }
 
 .empty-state-icon {
-  font-size: 2rem;
-  display: block;
+  display: inline-flex;
   margin-bottom: var(--space-2);
+  color: var(--text-muted);
 }
 
 .empty-state-title {
@@ -3755,8 +3775,15 @@ td {
 }
 
 .insight-icon {
-  font-size: 1.25rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  flex-shrink: 0;
 }
 
 .insight-body {
@@ -4227,18 +4254,29 @@ td {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.125rem;
   border-radius: var(--radius-sm);
   background: var(--bg-muted);
+  color: var(--text-muted);
   flex-shrink: 0;
 }
 
 .kpi-card.income .kpi-card-icon {
   background: var(--income-bg);
+  color: var(--income-text);
 }
 
 .kpi-card.expense .kpi-card-icon {
   background: var(--expense-bg);
+  color: var(--expense-text);
+}
+
+.kpi-card.balance .kpi-card-icon {
+  color: var(--accent);
+}
+
+.kpi-card.transfer .kpi-card-icon {
+  background: var(--transfer-bg);
+  color: var(--transfer-text);
 }
 
 .kpi-card-body {
@@ -4471,8 +4509,14 @@ td {
 }
 
 .export-btn-icon {
-  font-size: 1.25rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  color: var(--text-muted);
   flex-shrink: 0;
 }
 
@@ -4521,7 +4565,8 @@ td {
 }
 
 .comparison-icon {
-  font-size: 1rem;
+  display: inline-flex;
+  color: var(--text-muted);
 }
 
 .comparison-label {
@@ -5305,7 +5350,14 @@ td {
 }
 
 .file-badge-icon {
-  font-size: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  color: var(--text-muted);
 }
 
 .file-name {

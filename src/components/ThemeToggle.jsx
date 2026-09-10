@@ -1,3 +1,5 @@
+import Icon from "./icons/Icons"
+
 function ThemeToggle({ theme, onToggle }) {
   const isDark = theme === "dark"
 
@@ -10,10 +12,10 @@ function ThemeToggle({ theme, onToggle }) {
       title={isDark ? "Light mode" : "Dark mode"}
     >
       <span className={`theme-toggle-option ${!isDark ? "active" : ""}`}>
-        ☀️
+        <Icon name="sun" size={16} />
       </span>
       <span className={`theme-toggle-option ${isDark ? "active" : ""}`}>
-        🌙
+        <Icon name="moon" size={16} />
       </span>
       <span
         className="theme-toggle-thumb"

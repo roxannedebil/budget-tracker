@@ -11,6 +11,7 @@ import {
 import { useChartColors } from "../../hooks/useChartColors"
 import { formatMoney } from "../../utils/transactionStats"
 import EmptyState from "../EmptyState"
+import Icon from "../icons/Icons"
 
 function BudgetVsActualChart({ data }) {
   const colors = useChartColors()
@@ -19,7 +20,7 @@ function BudgetVsActualChart({ data }) {
   if (chartData.length === 0) {
     return (
       <EmptyState
-        icon="🎯"
+        icon={<Icon name="target" size={32} />}
         title="No budget data"
         message="Set category limits to compare budget vs actual spending."
       />

@@ -1,3 +1,5 @@
+import Icon from "../icons/Icons"
+
 function InsightsPanel({ insights }) {
   if (!insights.length) {
     return null
@@ -16,7 +18,7 @@ function InsightsPanel({ insights }) {
           {insights.map((item) => (
             <li key={item.title} className="insight-item">
               <span className="insight-icon" aria-hidden="true">
-                {item.icon}
+                <Icon name={item.icon} size={20} />
               </span>
               <div className="insight-body">
                 <span className="insight-title">{item.title}</span>

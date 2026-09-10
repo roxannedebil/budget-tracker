@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { supabase } from "../supabaseClient"
 import { ACCOUNT_TYPES, getAccountIcon } from "../utils/accounts"
+import { AccountLabel } from "./AccountLabel"
 import { getAccountBalance } from "../utils/accountStats"
 import { isAccountInUse } from "../utils/accountUsage"
 import { formatMoney } from "../utils/transactionStats"
@@ -145,7 +146,11 @@ function ManageAccounts({ accounts, transactions, onUpdate }) {
                   ) : (
                     <>
                       <span className="account-chip-main">
-                        {getAccountIcon(account.account_type)} {account.name}
+                        <AccountLabel
+                          accounts={accounts}
+                          id={account.account_id}
+                          iconSize={14}
+                        />
                       </span>
                       <span
                         className={`account-chip-balance ${balance >= 0 ? "positive" : "negative"}`}

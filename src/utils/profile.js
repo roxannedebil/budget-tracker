@@ -64,8 +64,9 @@ export async function uploadAvatar(supabase, userId, file) {
     .upload(filePath, file, { upsert: true, contentType: file.type })
 
   if (uploadError) {
-    throw uploadError
-  }
+  console.error("Avatar upload error:", uploadError)
+  throw uploadError
+}
 
   const {
     data: { publicUrl },

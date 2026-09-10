@@ -10,6 +10,7 @@ import {
   formatProfileError,
 } from "../utils/profile"
 import { formatDisplayDate } from "../utils/formatDate"
+import Icon from "../components/icons/Icons"
 
 function Profile({ session, profile, onProfileUpdate }) {
   const fileInputRef = useRef(null)
@@ -49,8 +50,17 @@ function Profile({ session, profile, onProfileUpdate }) {
     setAvatarUploading(true)
 
     try {
+
+      const { data, error } = await supabase.auth.getUser()
+
+      console.log("Current auth user:", data?.user)
+      console.log("Auth error:", error)
+      console.log("Component user ID:", user.id)
+
       const publicUrl = await uploadAvatar(supabase, user.id, file)
 
+      
+      
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
@@ -59,17 +69,24 @@ function Profile({ session, profile, onProfileUpdate }) {
         })
         .eq("id", user.id)
 
-      if (profileError) throw profileError
+      if (profileError) {
+        console.error("Profile update error:", profileError)
+        throw profileError
+      }
 
       const { error: metaError } = await supabase.auth.updateUser({
         data: { avatar_url: publicUrl },
       })
 
-      if (metaError) throw metaError
+      if (metaError) {
+        console.error("User metadata update error:", metaError)
+        throw metaError
+      }
 
       setAvatarMessage("Profile photo updated.")
       onProfileUpdate?.()
     } catch (err) {
+      console.error("Error updating profile:", err)
       setAvatarMessage(formatProfileError(err))
     } finally {
       setAvatarUploading(false)
@@ -319,7 +336,9 @@ function Profile({ session, profile, onProfileUpdate }) {
 
         <section className="card profile-section module-card">
           <div className="profile-section-head">
-            <span className="profile-section-icon">✉️</span>
+            <span className="profile-section-icon">
+              <Icon name="mail" size={20} />
+            </span>
             <h2>Email</h2>
           </div>
           <p className="muted compact-hint">

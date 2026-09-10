@@ -1,7 +1,7 @@
 export const ACCOUNT_TYPES = [
-  { value: "bank", label: "Bank", icon: "🏦" },
-  { value: "ewallet", label: "E-wallet", icon: "📱" },
-  { value: "cash", label: "Cash", icon: "💵" },
+  { value: "bank", label: "Bank", icon: "bank" },
+  { value: "ewallet", label: "E-wallet", icon: "smartphone" },
+  { value: "cash", label: "Cash", icon: "banknote" },
 ]
 
 export function getAccountTypeLabel(type) {
@@ -9,7 +9,7 @@ export function getAccountTypeLabel(type) {
 }
 
 export function getAccountIcon(type) {
-  return ACCOUNT_TYPES.find((t) => t.value === type)?.icon ?? "💳"
+  return ACCOUNT_TYPES.find((t) => t.value === type)?.icon ?? "credit-card"
 }
 
 export function getAccountById(accounts, id) {
@@ -20,7 +20,7 @@ export function getAccountById(accounts, id) {
 export function accountLabel(accounts, id) {
   const account = getAccountById(accounts, id)
   if (!account) return "—"
-  return `${getAccountIcon(account.account_type)} ${account.name}`
+  return account.name
 }
 
 export function filterAccountsByType(accounts, type) {

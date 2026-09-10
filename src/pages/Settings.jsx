@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react"
+import Icon from "../components/icons/Icons"
 import {
   getExpenseCategories,
   getIncomeCategories,
@@ -122,7 +123,9 @@ function Settings({ transactions = [] }) {
     <div className="page settings-page module-page">
       {/* Page Header */}
       <div className="settings-header module-card">
-        <div className="settings-header-icon">⚙️</div>
+        <div className="settings-header-icon">
+          <Icon name="settings" size={28} />
+        </div>
         <div className="settings-header-text">
           <h1>Settings</h1>
           <p className="settings-header-sub">
@@ -148,7 +151,9 @@ function Settings({ transactions = [] }) {
             className={`settings-tab ${activeTab === "expense" ? "active expense" : ""}`}
             onClick={() => switchTab("expense")}
           >
-            <span className="settings-tab-icon">💸</span>
+            <span className="settings-tab-icon">
+              <Icon name="spend" size={18} />
+            </span>
             Expense
             <span className={`settings-tab-count ${activeTab === "expense" ? "active" : ""}`}>
               {expenseCount}
@@ -160,7 +165,9 @@ function Settings({ transactions = [] }) {
             className={`settings-tab ${activeTab === "income" ? "active income" : ""}`}
             onClick={() => switchTab("income")}
           >
-            <span className="settings-tab-icon">💰</span>
+            <span className="settings-tab-icon">
+              <Icon name="wallet" size={18} />
+            </span>
             Income
             <span className={`settings-tab-count ${activeTab === "income" ? "active" : ""}`}>
               {incomeCount}
@@ -192,7 +199,9 @@ function Settings({ transactions = [] }) {
         {/* Category List */}
         {categories.length === 0 ? (
           <div className="settings-empty">
-            <span className="settings-empty-icon">🗂️</span>
+            <span className="settings-empty-icon">
+              <Icon name="folder-open" size={32} />
+            </span>
             <p className="settings-empty-title">No {kind} categories yet</p>
             <p className="settings-empty-hint">
               Use the field above to create your first {kind} category.

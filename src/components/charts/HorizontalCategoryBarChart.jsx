@@ -11,6 +11,7 @@ import {
 import { useChartColors } from "../../hooks/useChartColors"
 import { colorAt } from "../../utils/chartColors"
 import EmptyState from "../EmptyState"
+import Icon from "../icons/Icons"
 import CategoryBreakdownTooltip from "./CategoryBreakdownTooltip"
 
 function HorizontalCategoryBarChart({ data }) {
@@ -26,7 +27,7 @@ function HorizontalCategoryBarChart({ data }) {
   if (chartData.length === 0) {
     return (
       <EmptyState
-        icon="📊"
+        icon={<Icon name="bar-chart" size={32} />}
         title="No categories"
         message="Top categories will rank your highest spending."
       />

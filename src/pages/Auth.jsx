@@ -1,4 +1,5 @@
 import { useState } from "react"
+import Icon from "../components/icons/Icons"
 import { supabase } from "../supabaseClient"
 import {
   validateEmail,
@@ -122,12 +123,14 @@ function Auth({ theme, onToggleTheme }) {
         className="auth-theme-btn"
         onClick={onToggleTheme}
       >
-        {theme === "dark" ? "☀️" : "🌙"}
+        <Icon name={theme === "dark" ? "sun" : "moon"} size={18} />
       </button>
 
       <div className="auth-card">
         <div className="auth-brand">
-          <span className="auth-logo">💰</span>
+          <span className="auth-logo">
+            <Icon name="wallet" size={32} />
+          </span>
           <h1>Finance Tracker</h1>
           <p>
             {isSignUp

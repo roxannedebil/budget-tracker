@@ -10,6 +10,7 @@ import {
 import { useChartColors } from "../../hooks/useChartColors"
 import { formatMoney } from "../../utils/transactionStats"
 import EmptyState from "../EmptyState"
+import Icon from "../icons/Icons"
 
 function DailySpendingLineChart({ data }) {
   const colors = useChartColors()
@@ -18,7 +19,7 @@ function DailySpendingLineChart({ data }) {
   if (!hasData) {
     return (
       <EmptyState
-        icon="📈"
+        icon={<Icon name="trending-up" size={32} />}
         title="No daily spending"
         message="Daily trend appears when you log expenses this month."
       />

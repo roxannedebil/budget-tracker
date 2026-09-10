@@ -9,6 +9,7 @@ import {
 import { useChartColors } from "../../hooks/useChartColors"
 import { colorAt } from "../../utils/chartColors"
 import EmptyState from "../EmptyState"
+import Icon from "../icons/Icons"
 import CategoryBreakdownTooltip from "./CategoryBreakdownTooltip"
 
 function CategoryPieChart({ data, emptyTitle = "No data", emptyMessage }) {
@@ -23,7 +24,11 @@ function CategoryPieChart({ data, emptyTitle = "No data", emptyMessage }) {
 
   if (chartData.length === 0) {
     return (
-      <EmptyState icon="🥧" title={emptyTitle} message={emptyMessage} />
+      <EmptyState
+        icon={<Icon name="pie-chart" size={32} />}
+        title={emptyTitle}
+        message={emptyMessage}
+      />
     )
   }
 

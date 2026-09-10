@@ -13,6 +13,7 @@ import {
 } from "../utils/analytics"
 import { colorAt } from "../utils/chartColors"
 import StatCard from "../components/StatCard"
+import Icon from "../components/icons/Icons"
 import ChartCard from "../components/ChartCard"
 import ExpenseDonutChart from "../components/charts/ExpenseDonutChart"
 import DailySpendingLineChart from "../components/charts/DailySpendingLineChart"
@@ -93,26 +94,26 @@ function Dashboard({ transactions, loading }) {
         <h2 className="dashboard-section-title">Overview</h2>
         <div className="stat-grid stat-grid-4 kpi-grid">
           <StatCard
-            icon="📥"
+            icon={<Icon name="income" size={20} />}
             label="Income"
             value={formatMoney(income)}
             variant="income"
           />
           <StatCard
-            icon="📤"
+            icon={<Icon name="expense" size={20} />}
             label="Expenses"
             value={formatMoney(expenses)}
             variant="expense"
           />
           <StatCard
-            icon="💰"
+            icon={<Icon name="wallet" size={20} />}
             label="Net savings"
             value={formatMoney(savings)}
             variant={savings >= 0 ? "income" : "expense"}
             hint="Income minus expenses"
           />
           <StatCard
-            icon="🧾"
+            icon={<Icon name="receipt" size={20} />}
             label="Transactions"
             value={String(monthTx.length)}
             variant="balance"
@@ -131,7 +132,7 @@ function Dashboard({ transactions, loading }) {
           >
             {expenseBreakdown.length === 0 ? (
               <EmptyState
-                icon="🍩"
+                icon={<Icon name="pie-chart" size={32} />}
                 title="No expenses this month"
                 message="Add a transaction with a category to see your breakdown."
               />

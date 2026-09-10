@@ -1,5 +1,5 @@
 import { getAccountActivity } from "../utils/accountStats"
-import { getAccountIcon } from "../utils/accounts"
+import { AccountLabel } from "./AccountLabel"
 import { formatMoney } from "../utils/transactionStats"
 
 function AccountBalances({ accounts, transactions }) {
@@ -19,7 +19,11 @@ function AccountBalances({ accounts, transactions }) {
         {activity.map((account) => (
           <div key={account.account_id} className="account-balance-item">
             <span className="account-balance-name">
-              {getAccountIcon(account.account_type)} {account.name}
+              <AccountLabel
+                accounts={accounts}
+                id={account.account_id}
+                iconSize={16}
+              />
             </span>
             <span
               className={`account-balance-value ${account.balance >= 0 ? "positive" : "negative"}`}

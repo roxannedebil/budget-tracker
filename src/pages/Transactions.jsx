@@ -2,6 +2,7 @@ import AddTransaction from "../components/AddTransaction"
 import ImportTransactions from "../components/ImportTransactions"
 import TransactionList from "../components/TransactionList"
 import StatCard from "../components/StatCard"
+import Icon from "../components/icons/Icons"
 import {
   formatMoney,
   getBalance,
@@ -30,25 +31,25 @@ function Transactions({
     <div className="page transactions-page module-page">
       <div className="stat-grid stat-grid-4 kpi-grid">
         <StatCard
-          icon="⚖️"
+          icon={<Icon name="balance" size={20} />}
           label="Current balance"
           value={formatMoney(getBalance(transactions))}
           variant="balance"
         />
         <StatCard
-          icon="📥"
+          icon={<Icon name="income" size={20} />}
           label="Income"
           value={formatMoney(income)}
           variant="income"
         />
         <StatCard
-          icon="📤"
+          icon={<Icon name="expense" size={20} />}
           label="Expenses"
           value={formatMoney(expenses)}
           variant="expense"
         />
         <StatCard
-          icon="↔️"
+          icon={<Icon name="transfer" size={20} />}
           label="Transfers"
           value={formatMoney(transfers)}
           variant="transfer"

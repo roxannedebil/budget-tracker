@@ -10,7 +10,9 @@ import {
 } from "./TransactionFilterPanel"
 import { formatCategoryLabel } from "../utils/categoryDisplay"
 import { formatDisplayDate } from "../utils/formatDate"
-import { formatAccountsCell, getTypeLabel } from "../utils/transactionDisplay"
+import { AccountsCell } from "./AccountLabel"
+import Icon from "./icons/Icons"
+import { getTypeLabel } from "../utils/transactionDisplay"
 import {
   filterTransactions,
   getDefaultFilters,
@@ -200,7 +202,9 @@ function TransactionList({ transactions, accounts, onUpdated }) {
           <h2>Transactions</h2>
         </div>
         <div className="empty-state">
-          <span className="empty-icon">📋</span>
+          <span className="empty-icon">
+            <Icon name="clipboard" size={28} />
+          </span>
           <p>No transactions yet</p>
           <span className="empty-hint">
             Add accounts, then record income, expenses, or transfers
@@ -262,7 +266,7 @@ function TransactionList({ transactions, accounts, onUpdated }) {
       </div>
 
       <p className="table-hint muted">
-        Drag ⠿ to reorder columns · Click header to sort
+        Drag columns to reorder · Click header to sort
       </p>
 
       <div className="table-wrap">
@@ -284,7 +288,7 @@ function TransactionList({ transactions, accounts, onUpdated }) {
                       onDragEnd={() => setDragColumn(null)}
                       title="Drag to reorder"
                     >
-                      ⠿
+                      <Icon name="grip-vertical" size={14} />
                     </span>
                     <button
                       type="button"
@@ -293,11 +297,14 @@ function TransactionList({ transactions, accounts, onUpdated }) {
                     >
                       {col.label}
                       <span className="sort-indicator">
-                        {sort.column === col.id
-                          ? sort.direction === "asc"
-                            ? "↑"
-                            : "↓"
-                          : ""}
+                        {sort.column === col.id ? (
+                          <Icon
+                            name={
+                              sort.direction === "asc" ? "arrow-up" : "arrow-down"
+                            }
+                            size={12}
+                          />
+                        ) : null}
                       </span>
                     </button>
                   </div>
@@ -436,7 +443,9 @@ function Cell({ t, columnId, accounts }) {
       return <td className="col-date">{formatDisplayDate(t.date)}</td>
     case "accounts":
       return (
-        <td className="col-accounts">{formatAccountsCell(t, accounts)}</td>
+        <td className="col-accounts">
+          <AccountsCell t={t} accounts={accounts} />
+        </td>
       )
     case "category":
       return (

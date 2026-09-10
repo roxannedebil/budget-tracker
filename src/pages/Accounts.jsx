@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import AccountHistoryPanel from "../components/AccountHistoryPanel"
 import ManageAccounts from "../components/ManageAccounts"
 import StatCard from "../components/StatCard"
+import Icon from "../components/icons/Icons"
 import { getAccountIcon, getAccountTypeLabel } from "../utils/accounts"
 import {
   getAccountActivity,
@@ -46,25 +47,25 @@ function Accounts({ accounts, transactions, fetchAccounts, loading }) {
     <div className="page accounts-page module-page">
       <div className="stat-grid stat-grid-4 kpi-grid">
         <StatCard
-          icon="🏦"
+          icon={<Icon name="bank" size={20} />}
           label="Accounts"
           value={String(accounts.length)}
           variant="balance"
         />
         <StatCard
-          icon="📥"
+          icon={<Icon name="income" size={20} />}
           label="Total income"
           value={formatMoney(totalIncome)}
           variant="income"
         />
         <StatCard
-          icon="📤"
+          icon={<Icon name="expense" size={20} />}
           label="Total expenses"
           value={formatMoney(totalExpenses)}
           variant="expense"
         />
         <StatCard
-          icon="⚖️"
+          icon={<Icon name="balance" size={20} />}
           label="Combined balance"
           value={formatMoney(totalBalance)}
           variant="balance"
@@ -80,7 +81,9 @@ function Accounts({ accounts, transactions, fetchAccounts, loading }) {
       {accounts.length === 0 ? (
         <div className="card module-card section-card">
           <div className="empty-state">
-            <span className="empty-icon">🏦</span>
+            <span className="empty-icon">
+              <Icon name="bank" size={28} />
+            </span>
             <p>No accounts yet</p>
             <span className="empty-hint">
               Add your bank, e-wallet, or cash accounts above to track balances
@@ -109,7 +112,10 @@ function Accounts({ accounts, transactions, fetchAccounts, loading }) {
                     >
                       <div className="account-overview-head">
                         <span className="account-overview-icon">
-                          {getAccountIcon(account.account_type)}
+                          <Icon
+                            name={getAccountIcon(account.account_type)}
+                            size={20}
+                          />
                         </span>
                         <div className="account-overview-title">
                           <span className="account-overview-name">

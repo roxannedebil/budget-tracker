@@ -11,6 +11,7 @@ import {
 import { useChartColors } from "../../hooks/useChartColors"
 import { formatMoney } from "../../utils/transactionStats"
 import EmptyState from "../EmptyState"
+import Icon from "../icons/Icons"
 
 function MonthlyIncomeExpenseChart({ data }) {
   const colors = useChartColors()
@@ -18,7 +19,7 @@ function MonthlyIncomeExpenseChart({ data }) {
   if (data.length === 0) {
     return (
       <EmptyState
-        icon="📅"
+        icon={<Icon name="calendar" size={32} />}
         title="No monthly data"
         message="Add transactions to see income vs expenses by month."
       />

@@ -15,6 +15,7 @@ import {
   getExpenses,
 } from "../utils/transactionStats"
 import StatCard from "../components/StatCard"
+import Icon from "../components/icons/Icons"
 import ChartCard from "../components/ChartCard"
 import BudgetVsActualChart from "../components/charts/BudgetVsActualChart"
 import ProgressRing from "../components/charts/ProgressRing"
@@ -180,25 +181,30 @@ function Budget({ transactions, loading }) {
         </div>
         <div className="stat-grid stat-grid-4 budget-stat-grid">
           <StatCard
-            icon="💸"
+            icon={<Icon name="spend" size={20} />}
             label="Spent"
             value={formatMoney(totalSpent)}
             variant="expense"
           />
           <StatCard
-            icon="🎯"
+            icon={<Icon name="target" size={20} />}
             label="Total budget"
             value={formatMoney(summary.totalBudget)}
             hint={`${summary.budgetedCount} with limits`}
           />
           <StatCard
-            icon="💰"
+            icon={<Icon name="wallet" size={20} />}
             label="Remaining"
             value={formatMoney(summary.remaining)}
             variant="income"
           />
           <StatCard
-            icon={summary.overCount > 0 ? "⚠️" : "✅"}
+            icon={
+              <Icon
+                name={summary.overCount > 0 ? "alert-triangle" : "check-circle"}
+                size={20}
+              />
+            }
             label="Over budget"
             value={String(summary.overCount)}
             hint={
@@ -270,7 +276,7 @@ function Budget({ transactions, loading }) {
 
         {budgetedCategories.length === 0 ? (
           <EmptyState
-            icon="🎯"
+            icon={<Icon name="target" size={32} />}
             title="No budgets set"
             message="Use the form above to add a limit for any category you want to track."
           />

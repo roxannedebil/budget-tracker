@@ -207,7 +207,7 @@ export function getFinancialInsights(transactions) {
 
   if (highestCategory) {
     insights.push({
-      icon: "📊",
+      icon: "bar-chart",
       title: "Highest spending category",
       value: highestCategory.category,
       detail: formatMoney(highestCategory.total),
@@ -216,7 +216,7 @@ export function getFinancialInsights(transactions) {
 
   if (largestExpense) {
     insights.push({
-      icon: "💸",
+      icon: "spend",
       title: "Largest expense",
       value: formatMoney(largestExpense.amount),
       detail: largestExpense.category || "—",
@@ -224,14 +224,14 @@ export function getFinancialInsights(transactions) {
   }
 
   insights.push({
-    icon: "📅",
+    icon: "calendar",
     title: "Average daily spending",
     value: formatMoney(avgDaily),
     detail: `${daysWithExpenses} active day${daysWithExpenses !== 1 ? "s" : ""}`,
   })
 
   insights.push({
-    icon: "💰",
+    icon: "wallet",
     title: "Savings rate",
     value: `${savingsRate.toFixed(1)}%`,
     detail: income > 0 ? "Of total income" : "No income recorded",
@@ -239,7 +239,7 @@ export function getFinancialInsights(transactions) {
 
   if (mostActiveDay) {
     insights.push({
-      icon: "🔥",
+      icon: "flame",
       title: "Most active spending day",
       value: formatDisplayDate(mostActiveDay[0]),
       detail: formatMoney(mostActiveDay[1]),

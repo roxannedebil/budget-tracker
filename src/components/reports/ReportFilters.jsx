@@ -1,3 +1,4 @@
+import Icon from "../icons/Icons"
 import {
   DATE_RANGE_PRESETS,
   formatFilterDateRange,
@@ -141,14 +142,18 @@ function ReportFilters({
         <p className="report-filter-section-label">Download</p>
         <div className="export-btn-group">
           <button type="button" className="export-btn" onClick={onExportExcel}>
-            <span className="export-btn-icon">📊</span>
+            <span className="export-btn-icon">
+              <Icon name="bar-chart" size={20} />
+            </span>
             <span className="export-btn-text">
               <strong>Excel report</strong>
               <small>Summary + charts data</small>
             </span>
           </button>
           <button type="button" className="export-btn" onClick={onExportCsv}>
-            <span className="export-btn-icon">📄</span>
+            <span className="export-btn-icon">
+              <Icon name="file-text" size={20} />
+            </span>
             <span className="export-btn-text">
               <strong>Summary CSV</strong>
               <small>Totals & categories</small>
@@ -159,7 +164,9 @@ function ReportFilters({
             className="export-btn"
             onClick={onExportTransactions}
           >
-            <span className="export-btn-icon">💳</span>
+            <span className="export-btn-icon">
+              <Icon name="credit-card" size={20} />
+            </span>
             <span className="export-btn-text">
               <strong>Transactions</strong>
               <small>Filtered rows only</small>

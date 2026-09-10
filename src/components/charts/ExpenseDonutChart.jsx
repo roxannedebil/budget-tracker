@@ -9,6 +9,7 @@ import {
 import { useChartColors } from "../../hooks/useChartColors"
 import { colorAt } from "../../utils/chartColors"
 import EmptyState from "../EmptyState"
+import Icon from "../icons/Icons"
 import CategoryBreakdownTooltip from "./CategoryBreakdownTooltip"
 
 function ExpenseDonutChart({ data }) {
@@ -18,7 +19,7 @@ function ExpenseDonutChart({ data }) {
   if (chartData.length === 0) {
     return (
       <EmptyState
-        icon="🍩"
+        icon={<Icon name="pie-chart" size={32} />}
         title="No expenses"
         message="Expense breakdown will appear once you add spending."
       />

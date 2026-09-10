@@ -10,6 +10,7 @@ import {
 import { useChartColors } from "../../hooks/useChartColors"
 import { formatMoney } from "../../utils/transactionStats"
 import EmptyState from "../EmptyState"
+import Icon from "../icons/Icons"
 
 function CashFlowLineChart({ data }) {
   const colors = useChartColors()
@@ -17,7 +18,7 @@ function CashFlowLineChart({ data }) {
   if (data.length === 0) {
     return (
       <EmptyState
-        icon="💹"
+        icon={<Icon name="activity" size={32} />}
         title="No cash flow data"
         message="Running balance builds as you add income and expenses."
       />

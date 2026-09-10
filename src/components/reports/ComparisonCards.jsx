@@ -1,3 +1,4 @@
+import Icon from "../icons/Icons"
 import { formatMoney } from "../../utils/transactionStats"
 
 function ChangeBadge({ change, invert = false }) {
@@ -16,7 +17,7 @@ function ComparisonCards({ comparison }) {
   const cards = [
     {
       label: "Expenses",
-      icon: "📤",
+      icon: "expense",
       current: comparison.expenses.current,
       previous: comparison.expenses.previous,
       change: comparison.expenses.change,
@@ -25,7 +26,7 @@ function ComparisonCards({ comparison }) {
     },
     {
       label: "Income",
-      icon: "📥",
+      icon: "income",
       current: comparison.income.current,
       previous: comparison.income.previous,
       change: comparison.income.change,
@@ -33,7 +34,7 @@ function ComparisonCards({ comparison }) {
     },
     {
       label: "Savings",
-      icon: "💰",
+      icon: "wallet",
       current: comparison.savings.current,
       previous: comparison.savings.previous,
       change: comparison.savings.change,
@@ -57,7 +58,7 @@ function ComparisonCards({ comparison }) {
           >
             <div className="comparison-card-top">
               <span className="comparison-icon" aria-hidden="true">
-                {card.icon}
+                <Icon name={card.icon} size={18} />
               </span>
               <span className="comparison-label">{card.label}</span>
             </div>

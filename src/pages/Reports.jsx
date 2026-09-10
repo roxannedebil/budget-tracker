@@ -33,6 +33,7 @@ import ComparisonCards from "../components/reports/ComparisonCards"
 import InsightsPanel from "../components/reports/InsightsPanel"
 import LoadingState from "../components/LoadingState"
 import StatCard from "../components/StatCard"
+import Icon from "../components/icons/Icons"
 
 function Reports({ transactions, loading }) {
   const [filters, setFilters] = useState(getDefaultReportFilters)
@@ -119,25 +120,25 @@ function Reports({ transactions, loading }) {
         </div>
         <div className="stat-grid stat-grid-4 kpi-grid">
           <StatCard
-            icon="📥"
+            icon={<Icon name="income" size={20} />}
             label="Income"
             value={formatMoney(income)}
             variant="income"
           />
           <StatCard
-            icon="📤"
+            icon={<Icon name="expense" size={20} />}
             label="Expenses"
             value={formatMoney(expenses)}
             variant="expense"
           />
           <StatCard
-            icon="💰"
+            icon={<Icon name="wallet" size={20} />}
             label="Net savings"
             value={formatMoney(net)}
             variant={net >= 0 ? "income" : "expense"}
           />
           <StatCard
-            icon="🧾"
+            icon={<Icon name="receipt" size={20} />}
             label="Transactions"
             value={String(filtered.length)}
             variant="balance"

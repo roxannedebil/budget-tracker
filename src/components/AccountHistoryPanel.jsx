@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react"
-import { getAccountIcon } from "../utils/accounts"
+import { AccountLabel } from "./AccountLabel"
+import Icon from "./icons/Icons"
 import { groupTransactionsByMonthLabel } from "../utils/accountStats"
 import { formatCategoryLabel } from "../utils/categoryDisplay"
 import { formatDisplayDate } from "../utils/formatDate"
@@ -79,7 +80,11 @@ function AccountHistoryPanel({
       <div className="card-header account-history-header">
         <div>
           <h2>
-            {getAccountIcon(account.account_type)} {account.name}
+            <AccountLabel
+              accounts={accounts}
+              id={account.account_id}
+              iconSize={18}
+            />
           </h2>
           <p className="account-history-subtitle muted">
             Transaction history for this account
@@ -123,7 +128,9 @@ function AccountHistoryPanel({
         <p className="muted compact-hint">Loading history…</p>
       ) : filtered.length === 0 ? (
         <div className="account-history-empty">
-          <span className="empty-icon">📋</span>
+          <span className="empty-icon">
+            <Icon name="clipboard" size={28} />
+          </span>
           <p>No {tab === "all" ? "" : `${tab} `}transactions yet</p>
           <span className="empty-hint">
             Income and expenses linked to this account will show up here.

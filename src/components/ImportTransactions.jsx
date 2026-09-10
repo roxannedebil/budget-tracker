@@ -6,6 +6,7 @@ import {
   readTransactionsFromFile,
   TEMPLATE_COLUMNS,
 } from "../utils/importTransactions"
+import Icon from "./icons/Icons"
 import { formatMoney } from "../utils/transactionStats"
 
 function ImportTransactions({ accounts = [], onImport }) {
@@ -136,7 +137,7 @@ function ImportTransactions({ accounts = [], onImport }) {
       } else {
         const importedCount = parseResult.rows.length
         setMessageType("success")
-        setMessage(`🎉 Successfully imported ${importedCount} transaction(s)!`)
+        setMessage(`Successfully imported ${importedCount} transaction(s)!`)
         resetState()
         onImport?.()
       }
@@ -232,13 +233,19 @@ function ImportTransactions({ accounts = [], onImport }) {
           {message && (
             <div className={`excel-alert ${messageType}`}>
               <span className="alert-icon">
-                {messageType === "success" && "✅"}
-                {messageType === "error" && "⚠️"}
-                {messageType === "warning" && "💡"}
+                {messageType === "success" && (
+                  <Icon name="check-circle" size={18} />
+                )}
+                {messageType === "error" && (
+                  <Icon name="alert-triangle" size={18} />
+                )}
+                {messageType === "warning" && (
+                  <Icon name="lightbulb" size={18} />
+                )}
               </span>
               <div className="alert-content">{message}</div>
               <button type="button" className="alert-close" onClick={() => setMessage("")}>
-                ✕
+                <Icon name="x" size={16} />
               </button>
             </div>
           )}
@@ -330,7 +337,9 @@ function ImportTransactions({ accounts = [], onImport }) {
               {/* File Info Bar */}
               <div className="file-info-bar">
                 <div className="file-info-left">
-                  <div className="file-badge-icon">📊</div>
+                  <div className="file-badge-icon">
+                    <Icon name="bar-chart" size={22} />
+                  </div>
                   <div>
                     <span className="file-name">{selectedFile.name}</span>
                     <span className="file-size">({(selectedFile.size / 1024).toFixed(1)} KB)</span>
@@ -471,7 +480,10 @@ function ImportTransactions({ accounts = [], onImport }) {
               {/* Validation Error List (if invalid rows exist) */}
               {parseResult.stats.invalidCount > 0 && (
                 <div className="excel-error-details">
-                  <h5>⚠️ Action Required for {parseResult.stats.invalidCount} Row(s):</h5>
+                  <h5 className="excel-error-heading">
+                    <Icon name="alert-triangle" size={16} />
+                    Action Required for {parseResult.stats.invalidCount} Row(s):
+                  </h5>
                   <ul>
                     {parseResult.previewRows
                       .filter((r) => !r.isValid)

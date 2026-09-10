@@ -2,6 +2,7 @@ import { formatCategoryLabel } from "../utils/categoryDisplay"
 import { formatDisplayDate } from "../utils/formatDate"
 import { formatMoney } from "../utils/transactionStats"
 import EmptyState from "./EmptyState"
+import Icon from "./icons/Icons"
 
 function RecentTransactionsTable({ transactions, limit = 10 }) {
   const rows = [...transactions]
@@ -11,7 +12,7 @@ function RecentTransactionsTable({ transactions, limit = 10 }) {
   if (rows.length === 0) {
     return (
       <EmptyState
-        icon="💳"
+        icon={<Icon name="credit-card" size={32} />}
         title="No transactions yet"
         message="Add your first transaction to see it here."
       />

@@ -1,4 +1,5 @@
 import UserAvatar from "./UserAvatar"
+import Icon from "./icons/Icons"
 import { getAvatarUrl, getDisplayName } from "../utils/profile"
 
 function Sidebar({
@@ -16,12 +17,12 @@ function Sidebar({
   const email = user?.email || ""
 
   const navItems = [
-    { id: "dashboard", label: "Dashboard", icon: "📊" },
-    { id: "transactions", label: "Transactions", icon: "💳" },
-    { id: "accounts", label: "Accounts", icon: "🏦" },
-    { id: "budget", label: "Budget", icon: "📁" },
-    { id: "reports", label: "Reports", icon: "📈" },
-    { id: "settings", label: "Settings", icon: "⚙️" },
+    { id: "dashboard", label: "Dashboard", icon: "dashboard" },
+    { id: "transactions", label: "Transactions", icon: "credit-card" },
+    { id: "accounts", label: "Accounts", icon: "bank" },
+    { id: "budget", label: "Budget", icon: "folder" },
+    { id: "reports", label: "Reports", icon: "trending-up" },
+    { id: "settings", label: "Settings", icon: "settings" },
   ]
 
   return (
@@ -35,7 +36,7 @@ function Sidebar({
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? "→" : "←"}
+          <Icon name={collapsed ? "arrow-right" : "arrow-left"} size={16} />
         </button>
       </div>
 
@@ -47,7 +48,9 @@ function Sidebar({
             onClick={() => setActivePage(item.id)}
             title={collapsed ? item.label : undefined}
           >
-            <span className="nav-icon">{item.icon}</span>
+            <span className="nav-icon">
+              <Icon name={item.icon} size={18} />
+            </span>
             {!collapsed && <span className="nav-label">{item.label}</span>}
           </button>
         ))}
@@ -79,7 +82,9 @@ function Sidebar({
           onClick={onLogout}
           title="Log out"
         >
-          <span className="nav-icon">🚪</span>
+          <span className="nav-icon">
+            <Icon name="log-out" size={18} />
+          </span>
           {!collapsed && <span className="nav-label">Log out</span>}
         </button>
       </div>
