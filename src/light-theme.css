@@ -1,0 +1,103 @@
+/* Light mode polish — uses cream tokens from index.css */
+
+[data-theme="light"] .content {
+  background: var(--bg);
+}
+
+[data-theme="light"] .card,
+[data-theme="light"] .form-card,
+[data-theme="light"] .transaction-list,
+[data-theme="light"] .module-card,
+[data-theme="light"] .module-panel {
+  background: var(--bg-card);
+  border-color: var(--border-subtle);
+}
+
+[data-theme="light"] .table-wrap {
+  border-color: var(--border-subtle);
+  background: var(--bg-card);
+}
+
+[data-theme="light"] .transaction-table th {
+  background: var(--table-header);
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+[data-theme="light"] .transaction-table td {
+  border-bottom-color: var(--border-subtle);
+}
+
+[data-theme="light"] .app-topbar {
+  background: color-mix(in srgb, var(--bg) 75%, var(--bg-card));
+  border-bottom-color: var(--border-subtle);
+}
+
+[data-theme="light"] .sidebar {
+  background: var(--sidebar-bg);
+  border-right-color: var(--sidebar-border);
+  box-shadow: 1px 0 0 var(--border-subtle);
+}
+
+[data-theme="light"] .sidebar button.active {
+  background: color-mix(in srgb, var(--accent) 10%, var(--sidebar-bg));
+}
+
+[data-theme="light"] .theme-toggle {
+  background: var(--bg-muted);
+  border-color: var(--border-subtle);
+}
+
+[data-theme="light"] .theme-toggle-thumb {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow);
+}
+
+[data-theme="light"] .stat-card {
+  background: var(--bg-card);
+  border-color: var(--border-subtle);
+}
+
+[data-theme="light"] .btn-sm:not(.ghost) {
+  box-shadow: var(--shadow);
+}
+
+[data-theme="light"] .btn-sm.ghost {
+  background: color-mix(in srgb, var(--bg-card) 80%, transparent);
+}
+
+[data-theme="light"] .accounts-history-segments,
+[data-theme="light"] .auth-tabs {
+  background: var(--bg-muted);
+  border-color: var(--border-subtle);
+}
+
+[data-theme="light"] .accounts-history-segment.active,
+[data-theme="light"] .auth-tabs button.active {
+  background: var(--bg-elevated);
+}
+
+[data-theme="light"] .modal-card,
+[data-theme="light"] .auth-card {
+  background: var(--bg-card);
+  border-color: var(--border-subtle);
+}
+
+[data-theme="light"] .custom-datepicker-popover {
+  background: var(--bg-elevated);
+  border-color: var(--border-subtle);
+}
+
+[data-theme="light"] .excel-import-wrapper {
+  background: var(--bg-card);
+}
+
+[data-theme="light"] .calendar-cell {
+  background: var(--bg-muted);
+  border-color: var(--border-subtle);
+}
+
+[data-theme="light"] .calendar-day.has-activity {
+  background: var(--bg-card);
+}

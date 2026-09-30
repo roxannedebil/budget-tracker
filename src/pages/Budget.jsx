@@ -21,6 +21,7 @@ import BudgetVsActualChart from "../components/charts/BudgetVsActualChart"
 import ProgressRing from "../components/charts/ProgressRing"
 import LoadingState from "../components/LoadingState"
 import EmptyState from "../components/EmptyState"
+import ConfirmDialog from "../components/ConfirmDialog"
 
 const BUDGET_KEY = "budget-limits"
 
@@ -94,6 +95,8 @@ function Budget({ transactions, loading }) {
     [spendingByCategory, limits]
   )
 
+  const [removeBudgetTarget, setRemoveBudgetTarget] = useState(null)
+
   const removeLimit = (category) => {
     const next = { ...limits }
     delete next[category]
@@ -102,6 +105,7 @@ function Budget({ transactions, loading }) {
       setEditing(null)
       setDraft("")
     }
+    setRemoveBudgetTarget(null)
   }
 
   const startEdit = (category) => {
@@ -374,7 +378,7 @@ function Budget({ transactions, loading }) {
                       <button
                         type="button"
                         className="btn-sm ghost budget-remove-btn"
-                        onClick={() => removeLimit(category)}
+                        onClick={() => setRemoveBudgetTarget(category)}
                       >
                         Remove budget
                       </button>
@@ -416,6 +420,20 @@ function Budget({ transactions, loading }) {
           </ul>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(removeBudgetTarget)}
+        title="Are you sure you want to delete?"
+        message={
+          removeBudgetTarget
+            ? `You are about to remove the budget for “${removeBudgetTarget}”. This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete"
+        danger
+        onConfirm={() => removeLimit(removeBudgetTarget)}
+        onCancel={() => setRemoveBudgetTarget(null)}
+      />
     </div>
   )
 }

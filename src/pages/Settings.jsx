@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react"
+import { useEffect, useState } from "react"
+import ConfirmDialog from "../components/ConfirmDialog"
 import Icon from "../components/icons/Icons"
 import {
   getExpenseCategories,
@@ -14,13 +15,62 @@ import {
   isSubcategoryInUse,
 } from "../utils/categories"
 
+function loadCategoryLists(transactions) {
+  return {
+    expense: getExpenseCategories(transactions),
+    income: getIncomeCategories(transactions),
+  }
+}
+
+function CategoryNoticeModal({ open, title, message, variant = "success", onClose }) {
+  if (!open) return null
+
+  return (
+    <div
+      className="modal-overlay"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className={`modal-card settings-notice-modal ${variant}`}
+        role="dialog"
+        aria-labelledby="settings-notice-title"
+        aria-describedby="settings-notice-message"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="settings-notice-head">
+          <span
+            className={`settings-notice-icon ${variant}`}
+            aria-hidden="true"
+          >
+            <Icon name={variant === "error" ? "alert-triangle" : "check-circle"} size={22} />
+          </span>
+          <h2 id="settings-notice-title">{title}</h2>
+        </div>
+        <p id="settings-notice-message" className="settings-notice-message">
+          {message}
+        </p>
+        <div className="confirm-dialog-actions modal-form-actions">
+          <button type="button" className="auth-submit" onClick={onClose}>
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function Settings({ transactions = [] }) {
   const [activeTab, setActiveTab] = useState("expense")
-  const [refreshKey, setRefreshKey] = useState(0)
+  const [categoryLists, setCategoryLists] = useState(() =>
+    loadCategoryLists(transactions)
+  )
 
   // ── Category add state
   const [newCatName, setNewCatName] = useState("")
   const [catError, setCatError] = useState("")
+  const [noticeModal, setNoticeModal] = useState(null)
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
 
   // ── Per-category expanded / adding-subcategory state
   const [expandedCat, setExpandedCat] = useState(null)
@@ -30,13 +80,23 @@ function Settings({ transactions = [] }) {
 
   const kind = activeTab // "expense" | "income"
 
-  const categories = useMemo(() => {
-    return kind === "income"
-      ? getIncomeCategories(transactions)
-      : getExpenseCategories(transactions)
-  }, [kind, transactions, refreshKey])
+  useEffect(() => {
+    setCategoryLists(loadCategoryLists(transactions))
+  }, [transactions])
 
-  const refresh = () => setRefreshKey((k) => k + 1)
+  const reloadCategoryLists = () => {
+    setCategoryLists(loadCategoryLists(transactions))
+  }
+
+  const categories = kind === "income" ? categoryLists.income : categoryLists.expense
+
+  const kindLabel = kind === "income" ? "Income" : "Expense"
+
+  const showNotice = (title, message, variant = "success") => {
+    setNoticeModal({ title, message, variant })
+  }
+
+  const closeNotice = () => setNoticeModal(null)
 
   // ── Add category
   const handleAddCategory = (e) => {
@@ -54,15 +114,52 @@ function Settings({ transactions = [] }) {
     const addFn = kind === "income" ? addIncomeCategory : addExpenseCategory
     addFn(trimmed)
     setNewCatName("")
-    refresh()
+    reloadCategoryLists()
+    showNotice(
+      "Category added",
+      `${kindLabel} category “${trimmed}” was added successfully.`
+    )
   }
 
-  // ── Delete category
-  const handleDeleteCategory = (cat) => {
-    if (isCategoryInUse(kind, cat, transactions)) return
-    deleteCategory(kind, cat)
-    if (expandedCat === cat) setExpandedCat(null)
-    refresh()
+  const requestDeleteCategory = (cat) => {
+    if (isCategoryInUse(kind, cat, transactions)) {
+      showNotice(
+        "Cannot delete category",
+        `“${cat}” is used by one or more transactions and cannot be removed.`,
+        "error"
+      )
+      return
+    }
+    setDeleteConfirm({ type: "category", cat })
+  }
+
+  const requestDeleteSubcategory = (cat, sub) => {
+    if (isSubcategoryInUse(kind, cat, sub, transactions)) {
+      showNotice(
+        "Cannot delete subcategory",
+        `“${sub}” is used by one or more transactions and cannot be removed.`,
+        "error"
+      )
+      return
+    }
+    setDeleteConfirm({ type: "subcategory", cat, sub })
+  }
+
+  const confirmDelete = () => {
+    if (!deleteConfirm) return
+
+    if (deleteConfirm.type === "category") {
+      const { cat } = deleteConfirm
+      deleteCategory(kind, cat)
+      if (expandedCat === cat) setExpandedCat(null)
+      reloadCategoryLists()
+    } else {
+      const { cat, sub } = deleteConfirm
+      deleteSubcategory(kind, cat, sub)
+      reloadCategoryLists()
+    }
+
+    setDeleteConfirm(null)
   }
 
   // ── Toggle expand subcategories
@@ -90,14 +187,11 @@ function Settings({ transactions = [] }) {
     addFn(cat, trimmed)
     setNewSubName("")
     setAddingSubFor(null)
-    refresh()
-  }
-
-  // ── Delete subcategory
-  const handleDeleteSubcategory = (cat, sub) => {
-    if (isSubcategoryInUse(kind, cat, sub, transactions)) return
-    deleteSubcategory(kind, cat, sub)
-    refresh()
+    reloadCategoryLists()
+    showNotice(
+      "Subcategory added",
+      `“${trimmed}” was added under “${cat}”.`
+    )
   }
 
   const switchTab = (tab) => {
@@ -108,16 +202,18 @@ function Settings({ transactions = [] }) {
     setCatError("")
     setNewSubName("")
     setSubError("")
+    setNoticeModal(null)
+    setDeleteConfirm(null)
   }
 
-  const expenseCount = useMemo(
-    () => getExpenseCategories(transactions).length,
-    [transactions, refreshKey]
-  )
-  const incomeCount = useMemo(
-    () => getIncomeCategories(transactions).length,
-    [transactions, refreshKey]
-  )
+  const deleteConfirmMessage = deleteConfirm
+    ? deleteConfirm.type === "category"
+      ? `You are about to delete the ${kindLabel.toLowerCase()} category “${deleteConfirm.cat}”. This cannot be undone.`
+      : `You are about to delete the subcategory “${deleteConfirm.sub}” under “${deleteConfirm.cat}”. This cannot be undone.`
+    : ""
+
+  const expenseCount = categoryLists.expense.length
+  const incomeCount = categoryLists.income.length
 
   return (
     <div className="page settings-page module-page">
@@ -152,7 +248,7 @@ function Settings({ transactions = [] }) {
             onClick={() => switchTab("expense")}
           >
             <span className="settings-tab-icon">
-              <Icon name="spend" size={18} />
+              <Icon name="peso" size={18} />
             </span>
             Expense
             <span className={`settings-tab-count ${activeTab === "expense" ? "active" : ""}`}>
@@ -212,7 +308,11 @@ function Settings({ transactions = [] }) {
             {categories.map((cat) => {
               const inUse = isCategoryInUse(kind, cat, transactions)
               const isExpanded = expandedCat === cat
-              const subcategories = getSubcategoriesForCategory(kind, cat, transactions)
+              const subcategories = getSubcategoriesForCategory(
+                kind,
+                cat,
+                transactions
+              )
 
               return (
                 <li key={cat} className={`settings-cat-row ${isExpanded ? "expanded" : ""}`}>
@@ -241,7 +341,7 @@ function Settings({ transactions = [] }) {
                         <button
                           type="button"
                           className="settings-delete-btn"
-                          onClick={() => handleDeleteCategory(cat)}
+                          onClick={() => requestDeleteCategory(cat)}
                           title="Delete category"
                           aria-label={`Delete ${cat}`}
                         >
@@ -273,7 +373,7 @@ function Settings({ transactions = [] }) {
                                     <button
                                       type="button"
                                       className="settings-delete-btn"
-                                      onClick={() => handleDeleteSubcategory(cat, sub)}
+                                      onClick={() => requestDeleteSubcategory(cat, sub)}
                                       title="Delete subcategory"
                                       aria-label={`Delete ${sub}`}
                                     >
@@ -351,6 +451,24 @@ function Settings({ transactions = [] }) {
           </ul>
         )}
       </div>
+
+      <CategoryNoticeModal
+        open={Boolean(noticeModal)}
+        title={noticeModal?.title ?? ""}
+        message={noticeModal?.message ?? ""}
+        variant={noticeModal?.variant ?? "success"}
+        onClose={closeNotice}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteConfirm)}
+        title="Are you sure you want to delete?"
+        message={deleteConfirmMessage}
+        confirmLabel="Delete"
+        danger
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </div>
   )
 }

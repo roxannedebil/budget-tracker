@@ -1,3 +1,4 @@
+import { AppBrandMark } from "./AppBrand"
 import UserAvatar from "./UserAvatar"
 import Icon from "./icons/Icons"
 import { getAvatarUrl, getDisplayName } from "../utils/profile"
@@ -19,6 +20,7 @@ function Sidebar({
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: "dashboard" },
     { id: "transactions", label: "Transactions", icon: "credit-card" },
+    { id: "calendar", label: "Calendar", icon: "calendar" },
     { id: "accounts", label: "Accounts", icon: "bank" },
     { id: "budget", label: "Budget", icon: "folder" },
     { id: "reports", label: "Reports", icon: "trending-up" },
@@ -28,15 +30,23 @@ function Sidebar({
   return (
     <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
       <div className="sidebar-top">
-        {!collapsed && <h3>KoiNest</h3>}
+        <AppBrandMark
+          size={collapsed ? 28 : 32}
+          className="sidebar-top-logo"
+        />
+        <span className="app-brand-name sidebar-top-title">KoiNest</span>
         <button
           type="button"
-          className="sidebar-collapse-btn"
+          className="sidebar-collapse-btn sidebar-collapse-btn-icon sidebar-top-toggle"
           onClick={onToggleCollapse}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          <Icon name={collapsed ? "arrow-right" : "arrow-left"} size={16} />
+          <Icon
+            name={collapsed ? "panel-left" : "panel-left-close"}
+            size={22}
+            className="sidebar-collapse-icon"
+          />
         </button>
       </div>
 

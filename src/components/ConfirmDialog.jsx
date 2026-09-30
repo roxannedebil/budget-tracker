@@ -30,15 +30,7 @@ function ConfirmDialog({
           {message}
         </p>
         {error && <p className="inline-alert error">{error}</p>}
-        <div className="confirm-dialog-actions">
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={onCancel}
-            disabled={loading}
-          >
-            {cancelLabel}
-          </button>
+        <div className="confirm-dialog-actions modal-form-actions">
           <button
             type="button"
             className={danger ? "confirm-dialog-danger" : "auth-submit"}
@@ -46,6 +38,14 @@ function ConfirmDialog({
             disabled={loading}
           >
             {loading ? "Please wait…" : confirmLabel}
+          </button>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={onCancel}
+            disabled={loading}
+          >
+            {cancelLabel}
           </button>
         </div>
       </div>

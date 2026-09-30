@@ -500,10 +500,7 @@ function ImportTransactions({ accounts = [], onImport }) {
               )}
 
               {/* Action Bar */}
-              <div className="excel-actions-bar">
-                <button type="button" className="btn-sm ghost" onClick={resetState} disabled={isImporting}>
-                  Cancel
-                </button>
+              <div className="excel-actions-bar modal-form-actions">
                 <button
                   type="button"
                   className="btn-sm primary excel-submit-btn"
@@ -517,6 +514,9 @@ function ImportTransactions({ accounts = [], onImport }) {
                   ) : (
                     `Import ${parseResult.stats.validCount} Transaction(s)`
                   )}
+                </button>
+                <button type="button" className="btn-sm ghost" onClick={resetState} disabled={isImporting}>
+                  Cancel
                 </button>
               </div>
             </div>

@@ -75,7 +75,10 @@ function ResetPassword({ onClose, onSuccess }) {
 
           {error && <p className="inline-alert error">{error}</p>}
 
-          <div className="profile-form-actions">
+          <div className="profile-form-actions modal-form-actions">
+            <button type="submit" className="auth-submit" disabled={submitting}>
+              {submitting ? "Saving…" : "Update password"}
+            </button>
             <button
               type="button"
               className="btn-secondary"
@@ -83,9 +86,6 @@ function ResetPassword({ onClose, onSuccess }) {
               disabled={submitting}
             >
               Cancel
-            </button>
-            <button type="submit" className="auth-submit" disabled={submitting}>
-              {submitting ? "Saving…" : "Update password"}
             </button>
           </div>
         </form>

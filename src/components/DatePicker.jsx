@@ -1,48 +1,50 @@
-import { useEffect, useMemo, useRef, useState } from "react"
-import { formatDisplayDate, toDateInputValue } from "../utils/formatDate"
+import { useEffect, useRef, useState } from "react"
+import { flushSync } from "react-dom"
+import {
+  formatDisplayDate,
+  getLocalTodayParts,
+  getTodayDateInputValue,
+  parseDateInputValue,
+  resolveDatePickerView,
+  toDateInputValue,
+} from "../utils/formatDate"
 
-const MONTH_NAMES = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-]
 const DAY_NAMES = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
 
-function DatePicker({ value, onChange, placeholder = "Select date", disabled = false }) {
+function DatePicker({
+  value,
+  onChange,
+  placeholder = "Select date",
+  disabled = false,
+}) {
   const [isOpen, setIsOpen] = useState(false)
+  const [view, setView] = useState(() => resolveDatePickerView(value))
   const containerRef = useRef(null)
 
-  // Parse initial selected date or default to today
-  const parsedDate = value ? new Date(value) : null
-  const validSelectedDate = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : null
+  const { year: viewYear, month: viewMonth } = view
+  const validSelectedDate = parseDateInputValue(value)
 
-  // Calendar view year and month
-  const initialViewDate = validSelectedDate || new Date()
-  const [viewYear, setViewYear] = useState(initialViewDate.getFullYear())
-  const [viewMonth, setViewMonth] = useState(initialViewDate.getMonth())
+  const applyViewFromValue = () => {
+    setView(resolveDatePickerView(value))
+  }
 
-  // Dynamic list of years (12 years past to 12 years future)
-  const yearOptions = useMemo(() => {
-    const currentY = new Date().getFullYear()
-    const years = []
-    for (let y = currentY - 12; y <= currentY + 12; y++) {
-      years.push(y)
-    }
-    if (!years.includes(viewYear)) {
-      years.push(viewYear)
-      years.sort((a, b) => a - b)
-    }
-    return years
-  }, [viewYear])
-
-  // Keep view year/month updated when value changes from outside
   useEffect(() => {
-    if (validSelectedDate) {
-      setViewYear(validSelectedDate.getFullYear())
-      setViewMonth(validSelectedDate.getMonth())
-    }
-  }, [value])
+    if (isOpen) return
+    applyViewFromValue()
+  }, [value, isOpen])
 
-  // Close calendar on click outside safely without glitching on native selects
+  const openPicker = () => {
+    if (disabled) return
+    if (!isOpen) {
+      flushSync(() => {
+        setView(resolveDatePickerView(value))
+      })
+      setIsOpen(true)
+      return
+    }
+    setIsOpen(false)
+  }
+
   useEffect(() => {
     function handleClickOutside(e) {
       if (!isOpen) return
@@ -62,70 +64,64 @@ function DatePicker({ value, onChange, placeholder = "Select date", disabled = f
     }
   }, [isOpen])
 
-  // Navigate months
   const handlePrevMonth = (e) => {
     e.stopPropagation()
-    if (viewMonth === 0) {
-      setViewMonth(11)
-      setViewYear((y) => y - 1)
-    } else {
-      setViewMonth((m) => m - 1)
-    }
+    setView((v) => {
+      if (v.month === 0) return { year: v.year - 1, month: 11 }
+      return { ...v, month: v.month - 1 }
+    })
   }
 
   const handleNextMonth = (e) => {
     e.stopPropagation()
-    if (viewMonth === 11) {
-      setViewMonth(0)
-      setViewYear((y) => y + 1)
-    } else {
-      setViewMonth((m) => m + 1)
-    }
+    setView((v) => {
+      if (v.month === 11) return { year: v.year + 1, month: 0 }
+      return { ...v, month: v.month + 1 }
+    })
   }
 
   const handleSelectDay = (day) => {
-    const selected = new Date(viewYear, viewMonth, day)
-    const formatted = toDateInputValue(selected)
-    onChange(formatted)
+    const selected = new Date(viewYear, viewMonth, day, 12, 0, 0)
+    onChange(toDateInputValue(selected))
     setIsOpen(false)
   }
 
   const handleSelectToday = (e) => {
     e.stopPropagation()
-    const today = new Date()
-    setViewYear(today.getFullYear())
-    setViewMonth(today.getMonth())
-    onChange(toDateInputValue(today))
+    const parts = getLocalTodayParts()
+    setView({ year: parts.year, month: parts.month })
+    onChange(getTodayDateInputValue())
     setIsOpen(false)
   }
 
-  // Calculate days in month grid
+  const viewMonthLabel = new Date(viewYear, viewMonth, 1).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  })
+
   const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay()
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
   const prevMonthDays = new Date(viewYear, viewMonth, 0).getDate()
 
   const calendarDays = []
-  // Fill leading days from previous month
   for (let i = firstDayOfWeek - 1; i >= 0; i--) {
     calendarDays.push({ day: prevMonthDays - i, currentMonth: false, isPrev: true })
   }
-  // Fill current month days
   for (let d = 1; d <= daysInMonth; d++) {
     calendarDays.push({ day: d, currentMonth: true })
   }
-  // Fill trailing days for next month
   const totalSlots = Math.ceil(calendarDays.length / 7) * 7
   const trailingCount = totalSlots - calendarDays.length
   for (let i = 1; i <= trailingCount; i++) {
     calendarDays.push({ day: i, currentMonth: false, isNext: true })
   }
 
-  const today = new Date()
+  const today = getLocalTodayParts()
   const isTodayCell = (d, isCurrent) =>
     isCurrent &&
-    d === today.getDate() &&
-    viewMonth === today.getMonth() &&
-    viewYear === today.getFullYear()
+    d === today.day &&
+    viewMonth === today.month &&
+    viewYear === today.year
 
   const isSelectedCell = (d, isCurrent) =>
     isCurrent &&
@@ -134,17 +130,21 @@ function DatePicker({ value, onChange, placeholder = "Select date", disabled = f
     viewMonth === validSelectedDate.getMonth() &&
     viewYear === validSelectedDate.getFullYear()
 
-  // Display text formatted as "MMM DD, YYYY" (e.g. Aug 7, 2026)
   const displayText = value ? formatDisplayDate(value) : placeholder
 
   return (
     <div className="custom-datepicker-container" ref={containerRef}>
       <div
         className={`custom-datepicker-input ${isOpen ? "focused" : ""} ${disabled ? "disabled" : ""}`}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={openPicker}
         tabIndex={disabled ? -1 : 0}
         role="button"
-        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && !disabled && setIsOpen(!isOpen)}
+        onKeyDown={(e) => {
+          if ((e.key === "Enter" || e.key === " ") && !disabled) {
+            e.preventDefault()
+            openPicker()
+          }
+        }}
       >
         <span className={`datepicker-value ${!value ? "placeholder" : ""}`}>{displayText}</span>
         <svg
@@ -171,7 +171,6 @@ function DatePicker({ value, onChange, placeholder = "Select date", disabled = f
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          {/* Header Controls with Quick Month & Year Dropdowns */}
           <div className="datepicker-popover-header">
             <button
               type="button"
@@ -182,31 +181,9 @@ function DatePicker({ value, onChange, placeholder = "Select date", disabled = f
               ‹
             </button>
 
-            <div className="datepicker-select-group">
-              <select
-                className="datepicker-month-select"
-                value={viewMonth}
-                onChange={(e) => setViewMonth(Number(e.target.value))}
-              >
-                {MONTH_NAMES.map((m, idx) => (
-                  <option key={m} value={idx}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                className="datepicker-year-select"
-                value={viewYear}
-                onChange={(e) => setViewYear(Number(e.target.value))}
-              >
-                {yearOptions.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <span className="datepicker-month-title" aria-live="polite">
+              {viewMonthLabel}
+            </span>
 
             <button
               type="button"
@@ -218,7 +195,6 @@ function DatePicker({ value, onChange, placeholder = "Select date", disabled = f
             </button>
           </div>
 
-          {/* Weekday Names */}
           <div className="datepicker-weekdays">
             {DAY_NAMES.map((name) => (
               <span key={name} className="datepicker-weekday">
@@ -227,7 +203,6 @@ function DatePicker({ value, onChange, placeholder = "Select date", disabled = f
             ))}
           </div>
 
-          {/* Days Grid */}
           <div className="datepicker-days-grid">
             {calendarDays.map((item, index) => {
               const selected = isSelectedCell(item.day, item.currentMonth)
@@ -249,7 +224,6 @@ function DatePicker({ value, onChange, placeholder = "Select date", disabled = f
             })}
           </div>
 
-          {/* Footer Bar */}
           <div className="datepicker-popover-footer">
             <button type="button" className="datepicker-today-btn" onClick={handleSelectToday}>
               Today

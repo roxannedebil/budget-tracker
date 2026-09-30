@@ -1,4 +1,5 @@
 import "./App.css"
+import "./light-theme.css"
 import { useCallback, useEffect, useState } from "react"
 import { supabase } from "./supabaseClient"
 
@@ -12,6 +13,7 @@ import Transactions from "./pages/Transactions"
 import Accounts from "./pages/Accounts"
 import Budget from "./pages/Budget"
 import Reports from "./pages/Reports"
+import Calendar from "./pages/Calendar"
 import Profile from "./pages/Profile"
 import Settings from "./pages/Settings"
 
@@ -39,6 +41,10 @@ const PAGE_META = {
   },
   budget: { title: "Budget", subtitle: "Monthly limits by category" },
   reports: { title: "Reports", subtitle: "Charts & breakdowns" },
+  calendar: {
+    title: "Calendar",
+    subtitle: "Daily income, spending & transfers",
+  },
   profile: { title: "Profile", subtitle: "Account settings" },
   settings: { title: "Settings", subtitle: "Manage categories & preferences" },
 }
@@ -262,6 +268,14 @@ function App() {
 
         {activePage === "reports" && (
           <Reports transactions={transactions} loading={dataLoading} />
+        )}
+
+        {activePage === "calendar" && (
+          <Calendar
+            transactions={transactions}
+            accounts={accounts}
+            loading={dataLoading}
+          />
         )}
 
         {activePage === "profile" && (

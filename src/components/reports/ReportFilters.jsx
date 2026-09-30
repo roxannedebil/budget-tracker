@@ -1,3 +1,4 @@
+import DatePicker from "../DatePicker"
 import Icon from "../icons/Icons"
 import {
   DATE_RANGE_PRESETS,
@@ -64,20 +65,20 @@ function ReportFilters({
       <div className="report-filter-section">
         <p className="report-filter-section-label">Custom range & filters</p>
         <div className="report-filters-grid">
-          <label className="filter-field">
+          <label className="filter-field filter-field-datepicker">
             <span>Start date</span>
-            <input
-              type="date"
+            <DatePicker
               value={filters.dateFrom}
-              onChange={(e) => update("dateFrom", e.target.value)}
+              onChange={(next) => update("dateFrom", next)}
+              placeholder="Start date"
             />
           </label>
-          <label className="filter-field">
+          <label className="filter-field filter-field-datepicker">
             <span>End date</span>
-            <input
-              type="date"
+            <DatePicker
               value={filters.dateTo}
-              onChange={(e) => update("dateTo", e.target.value)}
+              onChange={(next) => update("dateTo", next)}
+              placeholder="End date"
             />
           </label>
           <label className="filter-field">

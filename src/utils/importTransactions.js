@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx"
 import { toStoredDate } from "./formatDate"
+import { resolveIncomeSource } from "./incomeSource"
 
 export const TEMPLATE_COLUMNS = [
   { name: "amount", required: true, description: "Number (e.g. 1500)" },
@@ -125,25 +126,15 @@ function buildRowPayload(row, accounts) {
     to_account_id,
   } = row
 
-  const depositAccount =
-    type === "income"
-      ? accounts.find((a) => a.account_id === to_account_id)
-      : null
-
-  const incomeSource =
-    type === "income" && depositAccount?.account_type === "bank"
-      ? "payroll"
-      : type === "income"
-        ? "other"
-        : null
-
-  let resolvedCategory = category
+  let resolvedCategory = (category || "").trim()
   if (type === "transfer") {
     resolvedCategory = "Transfer"
-  } else if (type === "income") {
-    resolvedCategory =
-      depositAccount?.account_type === "bank" ? "Payroll" : "Income"
+  } else if (type === "income" && !resolvedCategory) {
+    resolvedCategory = "Uncategorized"
   }
+
+  const incomeSource =
+    type === "income" ? resolveIncomeSource(type, resolvedCategory) : null
 
   return {
     amount,
@@ -380,7 +371,7 @@ export function downloadImportTemplate(accountNames = []) {
   const sample = [
     [30000, "income", "", accountHint, "", "", "2026-06-01", "Payroll"],
     [350, "expense", accountHint2, "", "Food", "Groceries", "2026-06-02", "Groceries"],
-    [500, "transfer", accountHint, accountHint2, "", "", "2026-06-03", "To e-wallet"],
+    [500, "transfer", accountHint, accountHint2, "", "", "2026-06-03", "To E-Wallet"],
   ]
 
   const sheet = XLSX.utils.aoa_to_sheet([headers, ...sample])

@@ -1,6 +1,6 @@
 export const ACCOUNT_TYPES = [
   { value: "bank", label: "Bank", icon: "bank" },
-  { value: "ewallet", label: "E-wallet", icon: "smartphone" },
+  { value: "ewallet", label: "E-Wallet", icon: "smartphone" },
   { value: "cash", label: "Cash", icon: "banknote" },
 ]
 

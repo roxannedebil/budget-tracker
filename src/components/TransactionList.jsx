@@ -374,10 +374,10 @@ function TransactionList({ transactions, accounts, onUpdated }) {
 
       <ConfirmDialog
         open={Boolean(pendingDelete)}
-        title="Delete transaction?"
+        title="Are you sure you want to delete?"
         message={
           pendingDelete
-            ? `This cannot be undone. You are about to delete: ${getTransactionDeleteSummary(pendingDelete)}`
+            ? `You are about to delete: ${getTransactionDeleteSummary(pendingDelete)}. This cannot be undone.`
             : ""
         }
         confirmLabel="Delete"

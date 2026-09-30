@@ -63,7 +63,7 @@ export function FilterDropdown({ filters, onChange, onClear, onApply }) {
           <input
             type="number"
             min="0"
-            placeholder="0"
+            placeholder="Minimum amount"
             value={filters.amountMin}
             onChange={(e) => update("amountMin", e.target.value)}
           />
@@ -73,7 +73,7 @@ export function FilterDropdown({ filters, onChange, onClear, onApply }) {
           <input
             type="number"
             min="0"
-            placeholder="Any"
+            placeholder="Maximum amount"
             value={filters.amountMax}
             onChange={(e) => update("amountMax", e.target.value)}
           />
@@ -94,7 +94,7 @@ export function FilterDropdown({ filters, onChange, onClear, onApply }) {
           <span>Category</span>
           <input
             type="text"
-            placeholder="e.g. Food"
+            placeholder="Filter by category"
             value={filters.category}
             onChange={(e) => update("category", e.target.value)}
           />
@@ -103,7 +103,7 @@ export function FilterDropdown({ filters, onChange, onClear, onApply }) {
           <span>Keyword search</span>
           <input
             type="text"
-            placeholder="Search notes, accounts, amounts…"
+            placeholder="Search notes, accounts, or amounts"
             value={filters.keyword}
             onChange={(e) => update("keyword", e.target.value)}
           />

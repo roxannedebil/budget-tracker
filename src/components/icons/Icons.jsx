@@ -230,6 +230,20 @@ const ICON_PATHS = {
       <path d="m12 5 7 7-7 7" />
     </>
   ),
+  "panel-left": (
+    <>
+      <rect width="18" height="18" x="3" y="3" rx="2" />
+      <path d="M9 3v18" />
+      <path d="m14 10-3 3 3 3" />
+    </>
+  ),
+  "panel-left-close": (
+    <>
+      <rect width="18" height="18" x="3" y="3" rx="2" />
+      <path d="M9 3v18" />
+      <path d="m14 9 3 3-3 3" />
+    </>
+  ),
   "arrow-left": (
     <>
       <path d="m12 19-7-7 7-7" />
@@ -262,8 +276,76 @@ const ICON_PATHS = {
   ),
   spend: (
     <>
-      <path d="M12 2v20" />
-      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+      <path d="M5 2v20" />
+      <path d="M9.5 2H10a7 7 0 0 1 7 7 7 7 0 0 1-7 7H9.5" />
+      <path d="M3 7h8" />
+      <path d="M3 11h8" />
+    </>
+  ),
+  peso: (
+    <>
+      <path d="M5 2v20" />
+      <path d="M9.5 2H10a7 7 0 0 1 7 7 7 7 0 0 1-7 7H9.5" />
+      <path d="M3 7h8" />
+      <path d="M3 11h8" />
+    </>
+  ),
+  user: (
+    <>
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </>
+  ),
+  lock: (
+    <>
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </>
+  ),
+  camera: (
+    <>
+      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+      <circle cx="12" cy="13" r="3" />
+    </>
+  ),
+  "chevron-left": (
+    <path d="m15 18-6-6 6-6" />
+  ),
+  "chevron-down": (
+    <path d="m6 9 6 6 6-6" />
+  ),
+  "chevron-right": (
+    <path d="m9 18 6-6-6-6" />
+  ),
+  pencil: (
+    <>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M3 6h18" />
+      <path d="M8 6V4h8v2" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+    </>
+  ),
+  check: (
+    <path d="M20 6 9 17l-5-5" />
+  ),
+  "plus-circle": (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M8 12h8" />
+      <path d="M12 8v8" />
+    </>
+  ),
+  eye: (
+    <>
+      <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
+      <circle cx="12" cy="12" r="3" />
     </>
   ),
 }

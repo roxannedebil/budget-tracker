@@ -9,7 +9,8 @@ import {
   getIncomeCategories,
   persistCategorySelection,
 } from "../utils/categories"
-import { toStoredDate } from "../utils/formatDate"
+import { getTodayDateInputValue, toStoredDate } from "../utils/formatDate"
+import { resolveIncomeSource } from "../utils/incomeSource"
 
 function AddTransaction({ accounts, transactions, onAdd }) {
   const [amount, setAmount] = useState("")
@@ -19,7 +20,7 @@ function AddTransaction({ accounts, transactions, onAdd }) {
   const [incomeCategory, setIncomeCategory] = useState("")
   const [incomeSubcategory, setIncomeSubcategory] = useState("")
   const [notes, setNotes] = useState("")
-  const [date, setDate] = useState("")
+  const [date, setDate] = useState(() => getTodayDateInputValue())
   const [fromAccountId, setFromAccountId] = useState("")
   const [toAccountId, setToAccountId] = useState("")
   const [submitting, setSubmitting] = useState(false)
@@ -46,7 +47,7 @@ function AddTransaction({ accounts, transactions, onAdd }) {
     setType("expense")
     setFromAccountId("")
     setToAccountId("")
-    setDate("")
+    setDate(getTodayDateInputValue())
   }
 
   const handleCategoryChange = (cat, sub, meta) => {
@@ -104,17 +105,8 @@ function AddTransaction({ accounts, transactions, onAdd }) {
       data: { user },
     } = await supabase.auth.getUser()
 
-    const depositAccount =
-      type === "income"
-        ? accounts.find((a) => a.account_id === toAccountId)
-        : null
-
     const incomeSource =
-      type === "income" && depositAccount?.account_type === "bank"
-        ? "payroll"
-        : type === "income"
-          ? "other"
-          : null
+      type === "income" ? resolveIncomeSource(type, incomeCategory) : null
 
     if (type === "expense" && category) {
       persistCategorySelection("expense", category, subcategory)
@@ -196,13 +188,13 @@ function AddTransaction({ accounts, transactions, onAdd }) {
         <p className="inline-alert error">Add an account first.</p>
       ) : (
         <form onSubmit={handleSubmit} className="transaction-form-grid">
+          <label className="form-field">
+            <span>Date</span>
+            <DatePicker value={date} onChange={setDate} />
+          </label>
+
           {type === "expense" && (
             <>
-              <label className="form-field">
-                <span>Date</span>
-                <DatePicker value={date} onChange={setDate} />
-              </label>
-
               <label className="form-field">
                 <span>Spend from</span>
                 <select
@@ -250,11 +242,6 @@ function AddTransaction({ accounts, transactions, onAdd }) {
           {type === "income" && (
             <>
               <label className="form-field">
-                <span>Date</span>
-                <DatePicker value={date} onChange={setDate} />
-              </label>
-
-              <label className="form-field">
                 <span>Add to account</span>
                 <select
                   value={toAccountId}
@@ -300,11 +287,6 @@ function AddTransaction({ accounts, transactions, onAdd }) {
 
           {type === "transfer" && (
             <>
-              <label className="form-field">
-                <span>Date</span>
-                <DatePicker value={date} onChange={setDate} />
-              </label>
-
               <label className="form-field">
                 <span>Amount</span>
                 <div className="amount-input">

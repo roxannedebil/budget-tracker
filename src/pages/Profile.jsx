@@ -10,6 +10,7 @@ import {
   formatProfileError,
 } from "../utils/profile"
 import { formatDisplayDate } from "../utils/formatDate"
+import ConfirmDialog from "../components/ConfirmDialog"
 import Icon from "../components/icons/Icons"
 
 function Profile({ session, profile, onProfileUpdate }) {
@@ -31,6 +32,7 @@ function Profile({ session, profile, onProfileUpdate }) {
   const [emailSaving, setEmailSaving] = useState(false)
   const [passwordSending, setPasswordSending] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
+  const [confirmRemoveAvatar, setConfirmRemoveAvatar] = useState(false)
 
   useEffect(() => {
     setFullName(profile?.full_name || user.user_metadata?.full_name || "")
@@ -120,6 +122,7 @@ function Profile({ session, profile, onProfileUpdate }) {
       setAvatarMessage(formatProfileError(err))
     } finally {
       setAvatarUploading(false)
+      setConfirmRemoveAvatar(false)
     }
   }
 
@@ -248,8 +251,9 @@ function Profile({ session, profile, onProfileUpdate }) {
             onClick={() => fileInputRef.current?.click()}
             disabled={avatarUploading}
             title="Change photo"
+            aria-label="Change photo"
           >
-            📷
+            <Icon name="camera" size={16} />
           </button>
         </div>
         <div className="profile-hero-info">
@@ -276,7 +280,7 @@ function Profile({ session, profile, onProfileUpdate }) {
               <button
                 type="button"
                 className="btn-ghost"
-                onClick={handleRemoveAvatar}
+                onClick={() => setConfirmRemoveAvatar(true)}
                 disabled={avatarUploading}
               >
                 Remove photo
@@ -301,8 +305,13 @@ function Profile({ session, profile, onProfileUpdate }) {
       <div className="profile-grid profile-grid-enhanced">
         <section className="card profile-section module-card">
           <div className="profile-section-head">
-            <span className="profile-section-icon">👤</span>
-            <h2>Full name</h2>
+            <span className="profile-section-icon" aria-hidden="true">
+              <Icon name="user" size={18} />
+            </span>
+            <div className="profile-section-titles">
+              <h2>Full name</h2>
+              <p className="profile-section-desc muted">Shown in the sidebar and across the app.</p>
+            </div>
           </div>
           <form className="profile-form" onSubmit={handleNameSave} noValidate>
             <label className="auth-field">
@@ -336,14 +345,16 @@ function Profile({ session, profile, onProfileUpdate }) {
 
         <section className="card profile-section module-card">
           <div className="profile-section-head">
-            <span className="profile-section-icon">
-              <Icon name="mail" size={20} />
+            <span className="profile-section-icon" aria-hidden="true">
+              <Icon name="mail" size={18} />
             </span>
-            <h2>Email</h2>
+            <div className="profile-section-titles">
+              <h2>Email</h2>
+              <p className="profile-section-desc muted">
+                Current: <strong>{user.email}</strong>
+              </p>
+            </div>
           </div>
-          <p className="muted compact-hint">
-            Current: <strong>{user.email}</strong>
-          </p>
           <form className="profile-form" onSubmit={handleEmailSave} noValidate>
             <label className="auth-field">
               <span>New email</span>
@@ -377,14 +388,18 @@ function Profile({ session, profile, onProfileUpdate }) {
           </form>
         </section>
 
-        <section className="card profile-section module-card">
+        <section className="card profile-section module-card profile-section-wide">
           <div className="profile-section-head">
-            <span className="profile-section-icon">🔒</span>
-            <h2>Password</h2>
+            <span className="profile-section-icon" aria-hidden="true">
+              <Icon name="lock" size={18} />
+            </span>
+            <div className="profile-section-titles">
+              <h2>Password</h2>
+              <p className="profile-section-desc muted">
+                Send a reset link to your email to choose a new password.
+              </p>
+            </div>
           </div>
-          <p className="muted compact-hint">
-            Send a reset link to your email to choose a new password.
-          </p>
           {passwordMessage && (
             <p
               className={`inline-alert ${
@@ -404,6 +419,17 @@ function Profile({ session, profile, onProfileUpdate }) {
           </button>
         </section>
       </div>
+
+      <ConfirmDialog
+        open={confirmRemoveAvatar}
+        title="Are you sure you want to delete?"
+        message="You are about to remove your profile photo. This cannot be undone."
+        confirmLabel="Delete"
+        danger
+        loading={avatarUploading}
+        onConfirm={handleRemoveAvatar}
+        onCancel={() => setConfirmRemoveAvatar(false)}
+      />
     </div>
   )
 }

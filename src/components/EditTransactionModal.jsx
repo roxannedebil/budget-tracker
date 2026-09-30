@@ -10,6 +10,7 @@ import {
   persistCategorySelection,
 } from "../utils/categories"
 import { toDateInputValue, toStoredDate } from "../utils/formatDate"
+import { resolveIncomeSource } from "../utils/incomeSource"
 
 function EditTransactionModal({ transaction, accounts, transactions, onClose, onSaved }) {
   const [amount, setAmount] = useState("")
@@ -112,17 +113,8 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
 
     setSubmitting(true)
 
-    const depositAccount =
-      type === "income"
-        ? accounts.find((a) => a.account_id === toAccountId)
-        : null
-
     const incomeSource =
-      type === "income" && depositAccount?.account_type === "bank"
-        ? "payroll"
-        : type === "income"
-          ? "other"
-          : null
+      type === "income" ? resolveIncomeSource(type, incomeCategory) : null
 
     if (type === "expense" && category) {
       persistCategorySelection("expense", category, subcategory)
@@ -385,7 +377,14 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
               />
             </label>
 
-            <div className="txn-form-footer modal-actions-footer">
+            <div className="txn-form-footer modal-actions-footer modal-form-actions">
+              <button
+                type="submit"
+                className={`submit-btn primary ${type}`}
+                disabled={submitting}
+              >
+                {submitting ? "Saving…" : "Save changes"}
+              </button>
               <button
                 type="button"
                 className="btn-secondary btn-sm"
@@ -393,13 +392,6 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
                 disabled={submitting}
               >
                 Cancel
-              </button>
-              <button
-                type="submit"
-                className={`submit-btn primary ${type}`}
-                disabled={submitting}
-              >
-                {submitting ? "Saving…" : "Save changes"}
               </button>
             </div>
 

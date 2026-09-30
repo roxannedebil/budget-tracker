@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { AppBrandMark } from "../components/AppBrand"
 import Icon from "../components/icons/Icons"
 import { supabase } from "../supabaseClient"
 import {
@@ -129,9 +130,9 @@ function Auth({ theme, onToggleTheme }) {
       <div className="auth-card">
         <div className="auth-brand">
           <span className="auth-logo">
-            <Icon name="wallet" size={32} />
+            <AppBrandMark size={36} />
           </span>
-          <h1>Finance Tracker</h1>
+          <h1>KoiNest</h1>
           <p>
             {isSignUp
               ? "Create an account to start tracking"

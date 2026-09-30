@@ -1,0 +1,24 @@
+{
+  "name": "KoiNest",
+  "short_name": "KoiNest",
+  "description": "Track accounts, budgets, and spending in one calm place.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f2ebe2",
+  "theme_color": "#f2ebe2",
+  "icons": [
+    {
+      "src": "koinest-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "koinest-logo.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
