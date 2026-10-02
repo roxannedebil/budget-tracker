@@ -1,15 +1,17 @@
 import { formatDisplayDate } from "./formatDate"
+import { formatCurrency, getTransactionMajorAbs } from "./currency"
+import { isExpenseTransaction } from "./transactionTypes"
 
 export function getIncome(transactions) {
   return transactions
     .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + Number(t.amount), 0)
+    .reduce((sum, t) => sum + getTransactionMajorAbs(t), 0)
 }
 
 export function getExpenses(transactions) {
   return transactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + Number(t.amount), 0)
+    .filter((t) => isExpenseTransaction(t))
+    .reduce((sum, t) => sum + getTransactionMajorAbs(t), 0)
 }
 
 export function getBalance(transactions) {
@@ -18,8 +20,8 @@ export function getBalance(transactions) {
 
 export function getTransfers(transactions) {
   return transactions
-    .filter((t) => t.type === "transfer")
-    .reduce((sum, t) => sum + Number(t.amount), 0)
+    .filter((t) => t.type === "transfer" || t.type === "transfer_out")
+    .reduce((sum, t) => sum + getTransactionMajorAbs(t), 0)
 }
 
 export function filterByMonth(transactions, year, month) {
@@ -34,11 +36,15 @@ export function getCurrentMonthTransactions(transactions) {
   return filterByMonth(transactions, now.getFullYear(), now.getMonth())
 }
 
+export function getMonthTransactions(transactions, year, month) {
+  return filterByMonth(transactions, year, month)
+}
+
 export function groupByCategory(transactions, type = "expense") {
   const groups = {}
 
   transactions
-    .filter((t) => t.type === type)
+    .filter((t) => (type === "expense" ? isExpenseTransaction(t) : t.type === type))
     .forEach((t) => {
       const key = t.category || "Uncategorized"
       groups[key] = (groups[key] || 0) + Number(t.amount)
@@ -65,7 +71,7 @@ export function groupByMonth(transactions) {
     }
     if (t.type === "income") {
       groups[key].income += Number(t.amount)
-    } else if (t.type === "expense") {
+    } else if (isExpenseTransaction(t)) {
       groups[key].expense += Number(t.amount)
     }
   })
@@ -89,6 +95,7 @@ export function getRecentMonthsTrend(transactions, count = 6) {
   })
 }
 
-export function formatMoney(amount) {
-  return `₱${Number(amount).toLocaleString()}`
+/** Format amount with Intl for the given ISO currency (Money helper). */
+export function formatMoney(amount, currencyCode = "PHP") {
+  return formatCurrency(amount, currencyCode)
 }

@@ -1,5 +1,7 @@
 import {
   formatAccountsCell,
+  getNotesWithFeeContext,
+  getTypeFilterGroup,
   getTypeLabel,
 } from "./transactionDisplay"
 
@@ -19,16 +21,16 @@ export function hasActiveFilters(filters) {
   return Object.values(filters).some((v) => String(v).trim() !== "")
 }
 
-function keywordMatch(t, accounts, keyword) {
+function keywordMatch(t, accounts, allTransactions, keyword) {
   if (!keyword.trim()) return true
   const q = keyword.trim().toLowerCase()
   const haystack = [
     t.category,
-    t.notes,
+    getNotesWithFeeContext(t, accounts, allTransactions),
     t.type,
     getTypeLabel(t),
     String(t.amount),
-    formatAccountsCell(t, accounts),
+    formatAccountsCell(t, accounts, allTransactions),
     t.date,
   ]
     .filter(Boolean)
@@ -61,7 +63,7 @@ export function filterTransactions(transactions, accounts, filters) {
       return false
     }
 
-    if (filters.type && getTypeLabel(t) !== filters.type) return false
+    if (filters.type && getTypeFilterGroup(t) !== filters.type) return false
 
     if (
       filters.category &&
@@ -72,7 +74,7 @@ export function filterTransactions(transactions, accounts, filters) {
       return false
     }
 
-    if (!keywordMatch(t, accounts, filters.keyword)) return false
+    if (!keywordMatch(t, accounts, transactions, filters.keyword)) return false
 
     return true
   })

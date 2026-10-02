@@ -1,15 +1,22 @@
 import { useRef, useState } from "react"
 import { supabase } from "../supabaseClient"
 import { persistCategorySelection } from "../utils/categories"
+import { createTransferBundle } from "../services/transferService"
 import {
   downloadImportTemplate,
+  planImportInsert,
   readTransactionsFromFile,
+  IMPORT_ADVANCED_COLUMNS,
+  IMPORT_GUIDE_TIPS,
   TEMPLATE_COLUMNS,
 } from "../utils/importTransactions"
 import Icon from "./icons/Icons"
-import { formatMoney } from "../utils/transactionStats"
+import CurrencyTotalsLines from "./CurrencyTotalsLines"
+import { useCurrency } from "../context/CurrencyContext"
+import { formatCurrency } from "../utils/currency"
 
-function ImportTransactions({ accounts = [], onImport }) {
+function ImportTransactions({ accounts = [], transactions = [], onImport }) {
+  const { primary, ratesTable } = useCurrency()
   const fileRef = useRef(null)
   const [isOpen, setIsOpen] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
@@ -53,7 +60,12 @@ function ImportTransactions({ accounts = [], onImport }) {
     setIsOpen(true)
 
     try {
-      const result = await readTransactionsFromFile(file, accounts)
+      const result = await readTransactionsFromFile(
+        file,
+        accounts,
+        primary,
+        transactions
+      )
       setParseResult(result)
       setActiveTab(result.stats.invalidCount > 0 ? "all" : "valid")
 
@@ -124,23 +136,40 @@ function ImportTransactions({ accounts = [], onImport }) {
         }
       })
 
-      const payload = parseResult.rows.map((row) => ({
-        ...row,
-        user_id: user?.id,
-      }))
+      const plan = planImportInsert(parseResult.rows, {
+        userId: user?.id,
+        primary,
+        ratesTable,
+      })
 
-      const { error } = await supabase.from("transactions").insert(payload)
+      let legCount = plan.transactions.length
 
-      if (error) {
-        setMessageType("error")
-        setMessage(`Database import failed: ${error.message}`)
-      } else {
-        const importedCount = parseResult.rows.length
-        setMessageType("success")
-        setMessage(`Successfully imported ${importedCount} transaction(s)!`)
-        resetState()
-        onImport?.()
+      for (const bundle of plan.transferBundles) {
+        const { error: bundleError } = await createTransferBundle(bundle)
+        if (bundleError) {
+          setMessageType("error")
+          setMessage(`Database import failed: ${bundleError.message}`)
+          return
+        }
+        legCount += bundle.transactions.length
       }
+
+      if (plan.transactions.length) {
+        const { error } = await supabase.from("transactions").insert(plan.transactions)
+        if (error) {
+          setMessageType("error")
+          setMessage(`Database import failed: ${error.message}`)
+          return
+        }
+      }
+
+      const importedCount = parseResult.rows.length
+      setMessageType("success")
+      setMessage(
+        `Successfully imported ${importedCount} spreadsheet row(s) (${legCount} transaction leg(s) saved).`
+      )
+      resetState()
+      onImport?.()
     } catch (err) {
       setMessageType("error")
       setMessage(err.message || "An unexpected error occurred during import.")
@@ -281,7 +310,7 @@ function ImportTransactions({ accounts = [], onImport }) {
                   </p>
                 </div>
                 <div className="dropzone-footer">
-                  <span className="hint-tag">Required headers: amount, type</span>
+                  <span className="hint-tag">Download template for column order (required: type, amount)</span>
                   <button
                     type="button"
                     className="link-btn"
@@ -298,7 +327,7 @@ function ImportTransactions({ accounts = [], onImport }) {
           {showColumnGuide && (
             <div className="excel-column-guide">
               <div className="guide-header">
-                <h4>Excel Column Format Reference</h4>
+                <h4>Column guide (matches the template file)</h4>
                 <button
                   type="button"
                   className="guide-download-link"
@@ -320,6 +349,27 @@ function ImportTransactions({ accounts = [], onImport }) {
                   </div>
                 ))}
               </div>
+              {IMPORT_ADVANCED_COLUMNS.length > 0 && (
+                <>
+                  <p className="guide-advanced-heading">Optional (not in template sheet)</p>
+                  <div className="guide-grid guide-grid-advanced">
+                    {IMPORT_ADVANCED_COLUMNS.map((col) => (
+                      <div key={col.name} className="guide-card">
+                        <div className="guide-card-top">
+                          <code className="guide-col-name">{col.name}</code>
+                          <span className="guide-tag optional">Advanced</span>
+                        </div>
+                        <p className="guide-col-desc">{col.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+              <ul className="excel-guide-tips">
+                {IMPORT_GUIDE_TIPS.map((tip) => (
+                  <li key={tip}>{tip}</li>
+                ))}
+              </ul>
             </div>
           )}
 
@@ -371,11 +421,23 @@ function ImportTransactions({ accounts = [], onImport }) {
                 </div>
                 <div className="stat-pill income">
                   <span className="stat-pill-label">Total Income</span>
-                  <span className="stat-pill-value">{formatMoney(parseResult.stats.totalIncome)}</span>
+                  <span className="stat-pill-value">
+                    <CurrencyTotalsLines
+                      rows={parseResult.stats.byCurrency || []}
+                      pick={(r) => r.income}
+                      stacked
+                    />
+                  </span>
                 </div>
                 <div className="stat-pill expense">
                   <span className="stat-pill-label">Total Expenses</span>
-                  <span className="stat-pill-value">{formatMoney(parseResult.stats.totalExpense)}</span>
+                  <span className="stat-pill-value">
+                    <CurrencyTotalsLines
+                      rows={parseResult.stats.byCurrency || []}
+                      pick={(r) => r.expense}
+                      stacked
+                    />
+                  </span>
                 </div>
               </div>
 
@@ -415,7 +477,10 @@ function ImportTransactions({ accounts = [], onImport }) {
                       <th>Status</th>
                       <th>Type</th>
                       <th>Amount</th>
+                      <th>Currency</th>
                       <th>From / To Account</th>
+                      <th>Receive</th>
+                      <th>Fee</th>
                       <th>Category</th>
                       <th>Date</th>
                       <th>Notes</th>
@@ -424,7 +489,7 @@ function ImportTransactions({ accounts = [], onImport }) {
                   <tbody>
                     {filteredPreviewRows.length === 0 ? (
                       <tr>
-                        <td colSpan="8" className="empty-preview-cell">
+                        <td colSpan="11" className="empty-preview-cell">
                           No rows match the selected filter tab.
                         </td>
                       </tr>
@@ -447,17 +512,25 @@ function ImportTransactions({ accounts = [], onImport }) {
                             </span>
                           </td>
                           <td className="cell-amount">
-                            {row.isValid ? formatMoney(row.parsed.amount) : String(row.raw.amount ?? "—")}
+                            {row.isValid
+                              ? formatCurrency(
+                                  row.parsed.amount,
+                                  row.parsed.currency || primary
+                                )
+                              : String(row.raw.amount ?? "—")}
                           </td>
+                          <td className="cell-currency">{row.parsed.currency}</td>
                           <td className="cell-accounts">
                             {row.parsed.type === "expense" && <span>From: {row.parsed.fromAccountName}</span>}
                             {row.parsed.type === "income" && <span>To: {row.parsed.toAccountName}</span>}
                             {row.parsed.type === "transfer" && (
-                              <span>
-                                {row.parsed.fromAccountName} ➔ {row.parsed.toAccountName}
+                              <span title="Imports as Transfer out + Transfer in (+ fee leg if set)">
+                                {row.parsed.fromAccountName} → {row.parsed.toAccountName}
                               </span>
                             )}
                           </td>
+                          <td className="cell-receive">{row.parsed.receiveLabel}</td>
+                          <td className="cell-fee">{row.parsed.feeLabel}</td>
                           <td>
                             <div className="cat-cell">
                               <span className="cat-main">{row.parsed.category}</span>

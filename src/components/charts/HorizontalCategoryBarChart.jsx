@@ -12,9 +12,11 @@ import { useChartColors } from "../../hooks/useChartColors"
 import { colorAt } from "../../utils/chartColors"
 import EmptyState from "../EmptyState"
 import Icon from "../icons/Icons"
+import { formatCurrency } from "../../utils/currency"
+import { formatChartTick } from "../../utils/currencySymbol"
 import CategoryBreakdownTooltip from "./CategoryBreakdownTooltip"
 
-function HorizontalCategoryBarChart({ data }) {
+function HorizontalCategoryBarChart({ data, currencyCode = "PHP" }) {
   const colors = useChartColors()
   const chartData = [...data]
     .sort((a, b) => b.total - a.total)
@@ -47,7 +49,7 @@ function HorizontalCategoryBarChart({ data }) {
           tick={{ fill: colors.text, fontSize: 11 }}
           axisLine={{ stroke: colors.grid }}
           tickLine={false}
-          tickFormatter={(v) => `₱${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+          tickFormatter={(v) => formatChartTick(v, currencyCode)}
         />
         <YAxis
           type="category"

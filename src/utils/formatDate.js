@@ -1,5 +1,43 @@
 const APP_TIME_ZONE = "Asia/Manila"
 
+const IMPORT_MONTH_ABBR = [
+  "JAN",
+  "FEB",
+  "MAR",
+  "APR",
+  "MAY",
+  "JUN",
+  "JUL",
+  "AUG",
+  "SEP",
+  "OCT",
+  "NOV",
+  "DEC",
+]
+
+const IMPORT_MONTH_FROM_ABBR = Object.fromEntries(
+  IMPORT_MONTH_ABBR.map((m, i) => [m.toLowerCase(), i])
+)
+
+/** Spreadsheet template date, e.g. AUG-01-2026 (month is 1–12). */
+export function formatImportSpreadsheetDateParts(year, month, day) {
+  const monthIndex = Number(month) - 1
+  if (monthIndex < 0 || monthIndex > 11) return ""
+  return `${IMPORT_MONTH_ABBR[monthIndex]}-${String(day).padStart(2, "0")}-${year}`
+}
+
+/** Format a stored/import date value as MMM-DD-YYYY for display or Excel. */
+export function formatImportSpreadsheetDate(value) {
+  const date =
+    value instanceof Date
+      ? Number.isNaN(value.getTime())
+        ? null
+        : value
+      : parseDateInputValue(value)
+  if (!date) return "—"
+  return `${IMPORT_MONTH_ABBR[date.getMonth()]}-${String(date.getDate()).padStart(2, "0")}-${date.getFullYear()}`
+}
+
 function calendarDateFromParts({ year, month, day }) {
   return new Date(year, month, day, 12, 0, 0)
 }
@@ -60,6 +98,18 @@ export function parseDateInputValue(value) {
       month: Number(month) - 1,
       day: Number(day),
     })
+  }
+
+  const importMmmMatch = /^([A-Za-z]{3})-(\d{1,2})-(\d{4})$/.exec(raw)
+  if (importMmmMatch) {
+    const monthIndex = IMPORT_MONTH_FROM_ABBR[importMmmMatch[1].toLowerCase()]
+    if (monthIndex !== undefined) {
+      return calendarDateFromParts({
+        year: Number(importMmmMatch[3]),
+        month: monthIndex,
+        day: Number(importMmmMatch[2]),
+      })
+    }
   }
 
   const parsed = new Date(value)

@@ -1,6 +1,9 @@
 import "../App.css"
 
 import { useEffect, useMemo, useState } from "react"
+import ModalPortal from "./ModalPortal"
+import Icon from "./icons/Icons"
+import PendingTransferEditStepper from "./PendingTransferEditStepper"
 import { supabase } from "../supabaseClient"
 import CategorySelect from "./CategorySelect"
 import DatePicker from "./DatePicker"
@@ -11,10 +14,38 @@ import {
 } from "../utils/categories"
 import { toDateInputValue, toStoredDate } from "../utils/formatDate"
 import { resolveIncomeSource } from "../utils/incomeSource"
+import CurrencySelect from "./CurrencySelect"
+import AccountSelect from "./AccountSelect"
+import {
+  accountShowsCurrencyPicker,
+  getAccountCurrencyOptions,
+} from "../utils/accountCurrencies"
+import {
+  getTransactionCurrency,
+  isPositiveMoneyAmount,
+} from "../utils/currency"
+import { currencyInputPrefix } from "../utils/currencySymbol"
+import { useCurrency } from "../context/CurrencyContext"
+import { buildIncomeExpensePayload } from "../utils/transactionPayload"
+import {
+  getTransferKey,
+  getTransferLegs,
+  isCompletedTransferGroup,
+  isLinkedTransferFee,
+  isPendingTransferGroup,
+} from "../utils/transferLifecycle"
 
-function EditTransactionModal({ transaction, accounts, transactions, onClose, onSaved }) {
+function EditTransactionModal({
+  transaction,
+  accounts,
+  transactions,
+  onClose,
+  onSaved,
+  focusComplete = false,
+}) {
+  const { primary, ratesTable } = useCurrency()
   const [amount, setAmount] = useState("")
-  const [type, setType] = useState("expense")
+  const [currency, setCurrency] = useState("PHP")
   const [category, setCategory] = useState("")
   const [subcategory, setSubcategory] = useState("")
   const [incomeCategory, setIncomeCategory] = useState("")
@@ -26,31 +57,123 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
   const [categoryKey, setCategoryKey] = useState(0)
+  const [transferHeader, setTransferHeader] = useState(null)
+  const [transferHeaderLoaded, setTransferHeaderLoaded] = useState(false)
+
+  const editKind = useMemo(() => {
+    if (!transaction) return null
+    if (isLinkedTransferFee(transaction)) return "linkedFee"
+    if (isCompletedTransferGroup(transaction, transactions)) return "completedTransfer"
+    if (isPendingTransferGroup(transaction, transactions)) return "pendingTransfer"
+    if (transaction.type === "income") return "income"
+    if (transaction.type === "fee" && !getTransferKey(transaction)) return "expense"
+    if (transaction.type === "expense") return "expense"
+    return "completedTransfer"
+  }, [transaction, transactions])
+
+  const transferKey = useMemo(() => getTransferKey(transaction), [transaction])
+  const transferLegs = useMemo(
+    () => getTransferLegs(transaction, transactions),
+    [transaction, transactions]
+  )
+
+  useEffect(() => {
+    if (!transaction) return undefined
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    const onKeyDown = (e) => {
+      if (e.key === "Escape" && !submitting) onClose()
+    }
+    document.addEventListener("keydown", onKeyDown)
+    return () => {
+      document.body.style.overflow = prev
+      document.removeEventListener("keydown", onKeyDown)
+    }
+  }, [transaction, onClose, submitting])
 
   useEffect(() => {
     if (!transaction) return
-
-    const txnType = transaction.type || "expense"
-    setType(txnType)
     setAmount(String(transaction.amount ?? ""))
-    setCategory(txnType === "expense" ? transaction.category || "" : "")
-    setSubcategory(txnType === "expense" ? transaction.subcategory || "" : "")
-    setIncomeCategory(txnType === "income" ? transaction.category || "" : "")
-    setIncomeSubcategory(
-      txnType === "income" ? transaction.subcategory || "" : ""
-    )
     setNotes(transaction.notes || "")
     setDate(toDateInputValue(transaction.date))
     setFromAccountId(transaction.from_account_id || "")
     setToAccountId(transaction.to_account_id || "")
+    setCurrency(getTransactionCurrency(transaction))
     setError("")
+
+    if (transaction.type === "income") {
+      setIncomeCategory(transaction.category || "")
+      setIncomeSubcategory(transaction.subcategory || "")
+      setCategory("")
+      setSubcategory("")
+    } else {
+      setCategory(transaction.category || "")
+      setSubcategory(transaction.subcategory || "")
+      setIncomeCategory("")
+      setIncomeSubcategory("")
+    }
   }, [transaction])
+
+  const [linkedFeeRow, setLinkedFeeRow] = useState(null)
+  const [linkedTransferOut, setLinkedTransferOut] = useState(null)
+  const [pendingTransferDataLoaded, setPendingTransferDataLoaded] = useState(false)
+
+  useEffect(() => {
+    if (!transferKey || editKind !== "pendingTransfer") {
+      setTransferHeader(null)
+      setTransferHeaderLoaded(false)
+      setLinkedFeeRow(null)
+      setLinkedTransferOut(null)
+      setPendingTransferDataLoaded(false)
+      return
+    }
+    let cancelled = false
+    setTransferHeaderLoaded(false)
+    setPendingTransferDataLoaded(false)
+    Promise.all([
+      supabase.from("transfers").select("*").eq("transfer_id", transferKey).maybeSingle(),
+      supabase
+        .from("transactions")
+        .select("*")
+        .eq("transfer_id", transferKey)
+        .eq("type", "fee")
+        .maybeSingle(),
+      supabase
+        .from("transactions")
+        .select("*")
+        .eq("transfer_id", transferKey)
+        .eq("type", "transfer_out")
+        .maybeSingle(),
+    ]).then(([headerRes, feeRes, outRes]) => {
+      if (cancelled) return
+      setTransferHeader(headerRes.data ?? null)
+      setTransferHeaderLoaded(true)
+      setLinkedFeeRow(feeRes.data ?? null)
+      setLinkedTransferOut(outRes.data ?? null)
+      setPendingTransferDataLoaded(true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [transferKey, editKind])
+
+  const fromAccount = accounts.find((a) => a.account_id === fromAccountId)
+  const toAccount = accounts.find((a) => a.account_id === toAccountId)
+  const fromCurrencyOptions = useMemo(
+    () => getAccountCurrencyOptions(fromAccount),
+    [fromAccount]
+  )
+  const toCurrencyOptions = useMemo(
+    () => getAccountCurrencyOptions(toAccount),
+    [toAccount]
+  )
+  const showFromCurrencyPicker = accountShowsCurrencyPicker(fromAccount)
+  const showToCurrencyPicker = accountShowsCurrencyPicker(toAccount)
 
   const expenseCategories = useMemo(
     () => getExpenseCategories(transactions),
     [transactions, categoryKey]
   )
-
   const incomeCategories = useMemo(
     () => getIncomeCategories(transactions),
     [transactions, categoryKey]
@@ -72,7 +195,7 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
     e.preventDefault()
     setError("")
 
-    if (type === "income") {
+    if (editKind === "income") {
       if (!toAccountId) {
         setError("Select which account to add money to.")
         return
@@ -83,7 +206,7 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
       }
     }
 
-    if (type === "expense") {
+    if (editKind === "expense") {
       if (!fromAccountId) {
         setError("Select which account to spend from.")
         return
@@ -94,15 +217,9 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
       }
     }
 
-    if (type === "transfer") {
-      if (!fromAccountId || !toAccountId) {
-        setError("Select from and to accounts.")
-        return
-      }
-      if (fromAccountId === toAccountId) {
-        setError("Accounts must be different.")
-        return
-      }
+    if (!isPositiveMoneyAmount(amount)) {
+      setError("Amount must be greater than zero.")
+      return
     }
 
     const id = transaction.transaction_id ?? transaction.id
@@ -114,41 +231,40 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
     setSubmitting(true)
 
     const incomeSource =
-      type === "income" ? resolveIncomeSource(type, incomeCategory) : null
+      editKind === "income" ? resolveIncomeSource("income", incomeCategory) : null
 
-    if (type === "expense" && category) {
+    if (editKind === "expense" && category) {
       persistCategorySelection("expense", category, subcategory)
     }
-
-    if (type === "income" && incomeCategory) {
+    if (editKind === "income" && incomeCategory) {
       persistCategorySelection("income", incomeCategory, incomeSubcategory)
     }
 
+    const storedDate = date ? toStoredDate(date) : new Date().toISOString()
+
+    const payload = buildIncomeExpensePayload({
+      type: editKind === "income" ? "income" : "expense",
+      amountMajor: amount,
+      currency,
+      primary,
+      ratesTable,
+      fields: {
+        category: editKind === "income" ? incomeCategory : category,
+        subcategory:
+          editKind === "income"
+            ? incomeSubcategory || null
+            : subcategory || null,
+        notes,
+        date: storedDate,
+        income_source: incomeSource,
+        from_account_id: editKind === "expense" ? fromAccountId : null,
+        to_account_id: editKind === "income" ? toAccountId : null,
+      },
+    })
+
     const { error: updateError } = await supabase
       .from("transactions")
-      .update({
-        amount: Number(amount),
-        type,
-        category:
-          type === "transfer"
-            ? "Transfer"
-            : type === "income"
-              ? incomeCategory
-              : category,
-        subcategory:
-          type === "transfer"
-            ? null
-            : type === "income"
-              ? incomeSubcategory || null
-              : subcategory || null,
-        notes,
-        date: date ? toStoredDate(date) : new Date().toISOString(),
-        income_source: incomeSource,
-        from_account_id:
-          type === "expense" || type === "transfer" ? fromAccountId : null,
-        to_account_id:
-          type === "income" || type === "transfer" ? toAccountId : null,
-      })
+      .update(payload)
       .eq("transaction_id", id)
 
     setSubmitting(false)
@@ -164,244 +280,233 @@ function EditTransactionModal({ transaction, accounts, transactions, onClose, on
 
   if (!transaction) return null
 
-  return (
-    <div className="modal-overlay" role="presentation" onClick={onClose}>
-      <div
-        className="modal-card edit-txn-modal"
-        role="dialog"
-        aria-labelledby="edit-txn-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="edit-txn-header">
-          <h2 id="edit-txn-title">Edit transaction</h2>
-          <div className="type-toggle-segmented" role="group" aria-label="Transaction type">
-            <button
-              type="button"
-              className={type === "expense" ? "active expense" : ""}
-              onClick={() => setType("expense")}
-            >
-              <span className="type-dot expense"></span> Expense
-            </button>
-            <button
-              type="button"
-              className={type === "income" ? "active income" : ""}
-              onClick={() => setType("income")}
-            >
-              <span className="type-dot income"></span> Income
-            </button>
-            <button
-              type="button"
-              className={type === "transfer" ? "active transfer" : ""}
-              onClick={() => setType("transfer")}
-            >
-              <span className="type-dot transfer"></span> Transfer
-            </button>
-          </div>
+  const modalShell = (content, wide = false) => (
+    <ModalPortal>
+      <div className="modal-overlay edit-txn-overlay" role="presentation" onClick={onClose}>
+        <div
+          className={`modal-card edit-txn-modal${wide ? " edit-txn-modal-wide" : ""}`}
+          role="dialog"
+          aria-labelledby="edit-txn-title"
+          aria-modal="true"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {content}
         </div>
+      </div>
+    </ModalPortal>
+  )
 
-        {accounts.length === 0 ? (
-          <p className="inline-alert error">Add an account first.</p>
-        ) : (
-          <form onSubmit={handleSubmit} className="transaction-form-grid">
-            {type === "expense" && (
-              <>
-                <label className="form-field">
-                  <span>Date</span>
-                  <DatePicker value={date} onChange={setDate} />
-                </label>
-
-                <label className="form-field">
-                  <span>Spend from</span>
-                  <select
-                    value={fromAccountId}
-                    onChange={(e) => setFromAccountId(e.target.value)}
-                    required
-                  >
-                    <option value="">Select account</option>
-                    {accounts.map((a) => (
-                      <option key={a.account_id} value={a.account_id}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <CategorySelect
-                  kind="expense"
-                  category={category}
-                  subcategory={subcategory}
-                  categories={expenseCategories}
-                  transactions={transactions}
-                  onChange={handleCategoryChange}
-                  placeholder="Select category"
-                />
-
-                <label className="form-field">
-                  <span>Amount</span>
-                  <div className="amount-input">
-                    <span className="currency">₱</span>
-                    <input
-                      type="number"
-                      placeholder="0.00"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      min="0"
-                      step="0.01"
-                      required
-                    />
-                  </div>
-                </label>
-              </>
-            )}
-
-            {type === "income" && (
-              <>
-                <label className="form-field">
-                  <span>Date</span>
-                  <DatePicker value={date} onChange={setDate} />
-                </label>
-
-                <label className="form-field">
-                  <span>Add to account</span>
-                  <select
-                    value={toAccountId}
-                    onChange={(e) => setToAccountId(e.target.value)}
-                    required
-                  >
-                    <option value="">Select account</option>
-                    {accounts.map((a) => (
-                      <option key={a.account_id} value={a.account_id}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <CategorySelect
-                  kind="income"
-                  category={incomeCategory}
-                  subcategory={incomeSubcategory}
-                  categories={incomeCategories}
-                  transactions={transactions}
-                  onChange={handleIncomeCategoryChange}
-                  placeholder="Select category"
-                />
-
-                <label className="form-field">
-                  <span>Amount</span>
-                  <div className="amount-input">
-                    <span className="currency">₱</span>
-                    <input
-                      type="number"
-                      placeholder="0.00"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      min="0"
-                      step="0.01"
-                      required
-                    />
-                  </div>
-                </label>
-              </>
-            )}
-
-            {type === "transfer" && (
-              <>
-                <label className="form-field">
-                  <span>Date</span>
-                  <DatePicker value={date} onChange={setDate} />
-                </label>
-
-                <label className="form-field">
-                  <span>Amount</span>
-                  <div className="amount-input">
-                    <span className="currency">₱</span>
-                    <input
-                      type="number"
-                      placeholder="0.00"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      min="0"
-                      step="0.01"
-                      required
-                    />
-                  </div>
-                </label>
-
-                <label className="form-field">
-                  <span>From</span>
-                  <select
-                    value={fromAccountId}
-                    onChange={(e) => setFromAccountId(e.target.value)}
-                    required
-                  >
-                    <option value="">Select account</option>
-                    {accounts.map((a) => (
-                      <option key={a.account_id} value={a.account_id}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="form-field">
-                  <span>To</span>
-                  <select
-                    value={toAccountId}
-                    onChange={(e) => setToAccountId(e.target.value)}
-                    required
-                  >
-                    <option value="">Select account</option>
-                    {accounts.map((a) => (
-                      <option
-                        key={a.account_id}
-                        value={a.account_id}
-                        disabled={a.account_id === fromAccountId}
-                      >
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </>
-            )}
-
-            {/* Full-width Notes Field */}
-            <label className="form-field form-field-full">
-              <span>Notes</span>
-              <input
-                type="text"
-                placeholder="Optional notes or description"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
-            </label>
-
-            <div className="txn-form-footer modal-actions-footer modal-form-actions">
-              <button
-                type="submit"
-                className={`submit-btn primary ${type}`}
-                disabled={submitting}
-              >
-                {submitting ? "Saving…" : "Save changes"}
-              </button>
-              <button
-                type="button"
-                className="btn-secondary btn-sm"
-                onClick={onClose}
-                disabled={submitting}
-              >
-                Cancel
-              </button>
-            </div>
-
-            {error && (
-              <p className="inline-alert error form-row-alert">{error}</p>
-            )}
-          </form>
-        )}
+  const titleBar = (title) => (
+    <div className="edit-txn-header">
+      <div className="edit-txn-title-row">
+        <h2 id="edit-txn-title">{title}</h2>
+        <button
+          type="button"
+          className="txn-detail-close edit-txn-close"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          <Icon name="x" size={18} />
+        </button>
       </div>
     </div>
+  )
+
+  if (editKind === "linkedFee") {
+    return modalShell(
+      <>
+        {titleBar("Edit transaction")}
+        <p className="muted">
+          This fee is part of a transfer. Edit or delete the transfer from its main row
+          instead.
+        </p>
+        <div className="txn-form-footer modal-actions-footer">
+          <button type="button" className="btn-secondary btn-sm" onClick={onClose}>
+            Close
+          </button>
+        </div>
+      </>
+    )
+  }
+
+  if (editKind === "completedTransfer") {
+    return modalShell(
+      <>
+        {titleBar("Transfer completed")}
+        <p className="muted form-field">
+          Completed transfers cannot be edited. Delete this transfer and create a new one if
+          you need different amounts, accounts, or fees.
+        </p>
+        <div className="txn-form-footer modal-actions-footer">
+          <button type="button" className="btn-secondary btn-sm" onClick={onClose}>
+            Close
+          </button>
+        </div>
+      </>
+    )
+  }
+
+  if (editKind === "pendingTransfer") {
+    return modalShell(
+      <>
+        {titleBar(focusComplete ? "Complete transfer" : "Pending transfer")}
+        <PendingTransferEditStepper
+          accounts={accounts}
+          transactions={transactions}
+          transferLegs={transferLegs}
+          transferKey={transferKey}
+          transferHeader={transferHeader}
+          transferHeaderLoaded={transferHeaderLoaded}
+          linkedFeeRow={linkedFeeRow}
+          linkedTransferOut={linkedTransferOut}
+          pendingTransferDataLoaded={pendingTransferDataLoaded}
+          focusComplete={focusComplete}
+          onClose={onClose}
+          onSaved={onSaved}
+        />
+      </>,
+      true
+    )
+  }
+
+  return modalShell(
+    <>
+      {titleBar(editKind === "income" ? "Edit income" : "Edit expense")}
+
+      {accounts.length === 0 ? (
+        <p className="inline-alert error">Add an account first.</p>
+      ) : (
+        <form onSubmit={handleSubmit} className="transaction-form-grid">
+          {editKind === "expense" && (
+            <>
+              <label className="form-field">
+                <span>Date</span>
+                <DatePicker value={date} onChange={setDate} />
+              </label>
+              <AccountSelect
+                label="Spend from"
+                value={fromAccountId}
+                onChange={setFromAccountId}
+                accounts={accounts}
+                required
+              />
+              <CategorySelect
+                kind="expense"
+                category={category}
+                subcategory={subcategory}
+                categories={expenseCategories}
+                transactions={transactions}
+                onChange={handleCategoryChange}
+                placeholder="Select category"
+              />
+              {showFromCurrencyPicker && (
+                <CurrencySelect
+                  value={currency}
+                  onChange={setCurrency}
+                  allowedCodes={fromCurrencyOptions}
+                />
+              )}
+              <label className="form-field">
+                <span>Amount</span>
+                <div className="amount-input">
+                  <span className="currency">{currencyInputPrefix(currency)}</span>
+                  <input
+                    type="number"
+                    placeholder="0.00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    min="0.01"
+                    step="0.01"
+                    required
+                  />
+                </div>
+              </label>
+            </>
+          )}
+
+          {editKind === "income" && (
+            <>
+              <label className="form-field">
+                <span>Date</span>
+                <DatePicker value={date} onChange={setDate} />
+              </label>
+              <AccountSelect
+                label="Add to account"
+                value={toAccountId}
+                onChange={setToAccountId}
+                accounts={accounts}
+                required
+              />
+              <CategorySelect
+                kind="income"
+                category={incomeCategory}
+                subcategory={incomeSubcategory}
+                categories={incomeCategories}
+                transactions={transactions}
+                onChange={handleIncomeCategoryChange}
+                placeholder="Select category"
+              />
+              {showToCurrencyPicker && (
+                <CurrencySelect
+                  value={currency}
+                  onChange={setCurrency}
+                  allowedCodes={toCurrencyOptions}
+                />
+              )}
+              <label className="form-field">
+                <span>Amount</span>
+                <div className="amount-input">
+                  <span className="currency">{currencyInputPrefix(currency)}</span>
+                  <input
+                    type="number"
+                    placeholder="0.00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    min="0.01"
+                    step="0.01"
+                    required
+                  />
+                </div>
+              </label>
+            </>
+          )}
+
+          <label className="form-field form-field-full">
+            <span>Notes</span>
+            <input
+              type="text"
+              placeholder="Optional notes or description"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </label>
+
+          <div className="txn-form-footer modal-actions-footer modal-form-actions">
+            <button
+              type="submit"
+              className={`submit-btn primary ${editKind}`}
+              disabled={submitting}
+            >
+              {submitting ? "Saving…" : "Save changes"}
+            </button>
+            <button
+              type="button"
+              className="btn-secondary btn-sm"
+              onClick={onClose}
+              disabled={submitting}
+            >
+              Cancel
+            </button>
+          </div>
+
+          {error && (
+            <p className="inline-alert error form-row-alert" role="alert">
+              {error}
+            </p>
+          )}
+        </form>
+      )}
+    </>
   )
 }
 

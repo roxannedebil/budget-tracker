@@ -3,7 +3,6 @@ import LoadingState from "../components/LoadingState"
 import StatCard from "../components/StatCard"
 import TransactionDetailModal from "../components/TransactionDetailModal"
 import Icon from "../components/icons/Icons"
-import { formatCategoryLabel } from "../utils/categoryDisplay"
 import {
   buildCalendarGrid,
   formatDayHeading,
@@ -11,14 +10,22 @@ import {
   isSameDayKey,
   summarizeTransactionsByDay,
 } from "../utils/calendarStats"
+import { formatTransactionAmount } from "../utils/currency"
 import {
-  filterByMonth,
-  formatMoney,
-  getBalance,
-  getExpenses,
-  getIncome,
-  getTransfers,
-} from "../utils/transactionStats"
+  getTransactionAmountPrefix,
+  getTransactionCategoryCell,
+  getTypeAmountClass,
+  getTypeLabel,
+  getTypePillClass,
+} from "../utils/transactionDisplay"
+import { AccountsCell } from "../components/AccountLabel"
+import { filterByMonth } from "../utils/transactionStats"
+import {
+  summarizeByCurrency,
+  summarizeTransfersByCurrency,
+} from "../utils/monthByCurrency"
+import CurrencyTotalsLines from "../components/CurrencyTotalsLines"
+import { formatCurrencyList } from "../utils/monthByCurrency"
 
 function Calendar({ transactions, accounts = [], loading }) {
   const todayKey = getTodayKey()
@@ -32,6 +39,16 @@ function Calendar({ transactions, accounts = [], loading }) {
   const monthTransactions = useMemo(
     () => filterByMonth(transactions, viewYear, viewMonth),
     [transactions, viewYear, viewMonth]
+  )
+
+  const monthByCurrency = useMemo(
+    () => summarizeByCurrency(monthTransactions),
+    [monthTransactions]
+  )
+
+  const transfersByCurrency = useMemo(
+    () => summarizeTransfersByCurrency(monthTransactions),
+    [monthTransactions]
   )
 
   const daySummaries = useMemo(
@@ -87,33 +104,186 @@ function Calendar({ transactions, accounts = [], loading }) {
         <StatCard
           icon={<Icon name="income" size={20} />}
           label="Income this month"
-          value={formatMoney(getIncome(monthTransactions))}
+          value={
+            <CurrencyTotalsLines rows={monthByCurrency} pick={(r) => r.income} stacked />
+          }
           variant="income"
+          hint="Per currency"
         />
         <StatCard
           icon={<Icon name="expense" size={20} />}
           label="Spent this month"
-          value={formatMoney(getExpenses(monthTransactions))}
+          value={
+            <CurrencyTotalsLines rows={monthByCurrency} pick={(r) => r.expense} stacked />
+          }
           variant="expense"
+          hint="Per currency"
         />
         <StatCard
           icon={<Icon name="transfer" size={20} />}
           label="Transfers this month"
-          value={formatMoney(getTransfers(monthTransactions))}
+          value={
+            <CurrencyTotalsLines
+              rows={transfersByCurrency}
+              pick={(r) => r.total}
+              stacked
+            />
+          }
           variant="transfer"
+          hint="Send volume per currency"
         />
         <StatCard
           icon={<Icon name="wallet" size={20} />}
           label="Net this month"
-          value={formatMoney(getBalance(monthTransactions))}
-          variant={
-            getBalance(monthTransactions) >= 0 ? "income" : "expense"
+          value={
+            <CurrencyTotalsLines rows={monthByCurrency} pick={(r) => r.net} stacked />
           }
-          hint="Income minus expenses"
+          variant="income"
+          hint="Income minus expenses, per currency"
         />
       </div>
 
-      <div className="calendar-layout">
+      <div className="calendar-layout calendar-layout-swapped">
+        <aside className="card module-card calendar-day-panel">
+          <div className="calendar-day-panel-head">
+            <div>
+              <h2 className="calendar-day-panel-title">
+                {formatDayHeading(selectedDayKey)}
+              </h2>
+              {selectedSummary ? (
+                <p className="muted calendar-day-panel-meta">
+                  {selectedSummary.count} transaction
+                  {selectedSummary.count !== 1 ? "s" : ""}
+                </p>
+              ) : (
+                <p className="muted calendar-day-panel-meta">
+                  Click a day on the calendar to see details
+                </p>
+              )}
+            </div>
+            {selectedDayKey && (
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => setSelectedDayKey(null)}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {selectedSummary && (
+            <div className="calendar-day-summary-row">
+              <div className="calendar-day-stat income">
+                <span className="label">Income</span>
+                <span className="value income-text">
+                  <CurrencyTotalsLines
+                    rows={summarizeByCurrency(selectedSummary.items)}
+                    pick={(r) => r.income}
+                    stacked
+                  />
+                </span>
+              </div>
+              <div className="calendar-day-stat expense">
+                <span className="label">Spent</span>
+                <span className="value expense-text">
+                  <CurrencyTotalsLines
+                    rows={summarizeByCurrency(selectedSummary.items)}
+                    pick={(r) => r.expense}
+                    stacked
+                  />
+                </span>
+              </div>
+              <div className="calendar-day-stat transfer">
+                <span className="label">Transfers</span>
+                <span className="value transfer-text">
+                  <CurrencyTotalsLines
+                    rows={summarizeTransfersByCurrency(selectedSummary.items)}
+                    pick={(r) => r.total}
+                    stacked
+                  />
+                </span>
+              </div>
+            </div>
+          )}
+
+          {!selectedDayKey && (
+            <div className="calendar-day-empty">
+              <Icon name="calendar" size={32} />
+              <p>Select a day to view income, spending, and transfers.</p>
+            </div>
+          )}
+
+          {selectedDayKey && !selectedSummary && (
+            <div className="calendar-day-empty">
+              <Icon name="inbox" size={32} />
+              <p>No transactions on this day.</p>
+            </div>
+          )}
+
+          {selectedSummary && (
+            <>
+              <div className="calendar-tx-list-head" aria-hidden="true">
+                <span>Type</span>
+                <span>Accounts</span>
+                <span>Category</span>
+                <span className="calendar-tx-head-amount">Amount</span>
+                <span className="calendar-tx-head-action" />
+              </div>
+              <ul className="calendar-tx-list accounts-scroll">
+                {selectedSummary.items.map((t) => {
+                  const category = getTransactionCategoryCell(t, accounts, {
+                    allTransactions: transactions,
+                  })
+                  const amountClass = getTypeAmountClass(t.type)
+                  const prefix = getTransactionAmountPrefix(t.type, {
+                    transaction: t,
+                  })
+                  return (
+                    <li key={t.transaction_id ?? t.id} className="calendar-tx-item">
+                      <span className="calendar-tx-col calendar-tx-col-type">
+                        <span
+                          className={`type-pill type-${getTypePillClass(t.type)}`}
+                        >
+                          {getTypeLabel(t)}
+                        </span>
+                      </span>
+                      <span className="calendar-tx-col calendar-tx-col-accounts">
+                        <AccountsCell
+                          t={t}
+                          accounts={accounts}
+                          allTransactions={transactions}
+                        />
+                      </span>
+                      <span
+                        className="calendar-tx-col calendar-tx-col-category"
+                        title={category || undefined}
+                      >
+                        {category || "—"}
+                      </span>
+                      <span
+                        className={`calendar-tx-col calendar-tx-col-amount calendar-tx-amount ${amountClass}`}
+                      >
+                        {prefix}
+                        {formatTransactionAmount(t)}
+                      </span>
+                      <button
+                        type="button"
+                        className="calendar-tx-view-btn"
+                        onClick={() => setDetailTransaction(t)}
+                        title="View full details"
+                        aria-label={`View details for ${getTypeLabel(t)}`}
+                      >
+                        <Icon name="eye" size={16} />
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </>
+          )}
+        </aside>
+
         <section className="card module-card calendar-card">
           <div className="calendar-toolbar">
             <button
@@ -177,21 +347,35 @@ function Calendar({ transactions, accounts = [], loading }) {
                   <span className="calendar-day-num">{cell.day}</span>
                   {hasActivity && (
                     <div className="calendar-day-totals">
-                      {summary.income > 0 && (
-                        <span className="calendar-mini income-text">
-                          +{formatMoney(summary.income)}
-                        </span>
-                      )}
-                      {summary.expense > 0 && (
-                        <span className="calendar-mini expense-text">
-                          −{formatMoney(summary.expense)}
-                        </span>
-                      )}
-                      {summary.transfer > 0 && (
-                        <span className="calendar-mini transfer-text">
-                          ⇄ {formatMoney(summary.transfer)}
-                        </span>
-                      )}
+                      {(() => {
+                        const dayRows = summarizeByCurrency(summary.items)
+                        const incomeText = formatCurrencyList(dayRows, (r) => r.income)
+                        const expenseText = formatCurrencyList(dayRows, (r) => r.expense)
+                        const transferRows = summarizeTransfersByCurrency(summary.items)
+                        const transferText = formatCurrencyList(
+                          transferRows,
+                          (r) => r.total
+                        )
+                        return (
+                          <>
+                            {dayRows.some((r) => r.income > 0) && (
+                              <span className="calendar-mini income-text" title={incomeText}>
+                                +{incomeText}
+                              </span>
+                            )}
+                            {dayRows.some((r) => r.expense > 0) && (
+                              <span className="calendar-mini expense-text" title={expenseText}>
+                                −{expenseText}
+                              </span>
+                            )}
+                            {transferRows.some((r) => r.total > 0) && (
+                              <span className="calendar-mini transfer-text" title={transferText}>
+                                ⇄ {transferText}
+                              </span>
+                            )}
+                          </>
+                        )
+                      })()}
                     </div>
                   )}
                 </button>
@@ -199,119 +383,12 @@ function Calendar({ transactions, accounts = [], loading }) {
             })}
           </div>
         </section>
-
-        <aside className="card module-card calendar-day-panel">
-          <div className="calendar-day-panel-head">
-            <div>
-              <h2 className="calendar-day-panel-title">
-                {formatDayHeading(selectedDayKey)}
-              </h2>
-              {selectedSummary ? (
-                <p className="muted calendar-day-panel-meta">
-                  {selectedSummary.count} transaction
-                  {selectedSummary.count !== 1 ? "s" : ""}
-                </p>
-              ) : (
-                <p className="muted calendar-day-panel-meta">
-                  Click a day on the calendar to see details
-                </p>
-              )}
-            </div>
-            {selectedDayKey && (
-              <button
-                type="button"
-                className="link-btn"
-                onClick={() => setSelectedDayKey(null)}
-              >
-                Clear
-              </button>
-            )}
-          </div>
-
-          {selectedSummary && (
-            <div className="calendar-day-summary-row">
-              <div className="calendar-day-stat income">
-                <span className="label">Income</span>
-                <span className="value income-text">
-                  {formatMoney(selectedSummary.income)}
-                </span>
-              </div>
-              <div className="calendar-day-stat expense">
-                <span className="label">Spent</span>
-                <span className="value expense-text">
-                  {formatMoney(selectedSummary.expense)}
-                </span>
-              </div>
-              <div className="calendar-day-stat transfer">
-                <span className="label">Transfers</span>
-                <span className="value transfer-text">
-                  {formatMoney(selectedSummary.transfer)}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {!selectedDayKey && (
-            <div className="calendar-day-empty">
-              <Icon name="calendar" size={32} />
-              <p>Select a day to view income, spending, and transfers.</p>
-            </div>
-          )}
-
-          {selectedDayKey && !selectedSummary && (
-            <div className="calendar-day-empty">
-              <Icon name="inbox" size={32} />
-              <p>No transactions on this day.</p>
-            </div>
-          )}
-
-          {selectedSummary && (
-            <ul className="calendar-tx-list">
-              {selectedSummary.items.map((t) => (
-                <li key={t.transaction_id ?? t.id} className="calendar-tx-item">
-                  <div className="calendar-tx-main">
-                    <span className={`type-pill type-${t.type}`}>{t.type}</span>
-                    <span className="calendar-tx-category">
-                      {formatCategoryLabel(t.category, t.subcategory)}
-                    </span>
-                  </div>
-                  <div className="calendar-tx-row-end">
-                    <span
-                      className={`calendar-tx-amount ${
-                        t.type === "expense"
-                          ? "expense-text"
-                          : t.type === "income"
-                            ? "income-text"
-                            : "transfer-text"
-                      }`}
-                    >
-                      {t.type === "expense"
-                        ? "−"
-                        : t.type === "income"
-                          ? "+"
-                          : "⇄"}
-                      {formatMoney(t.amount)}
-                    </span>
-                    <button
-                      type="button"
-                      className="calendar-tx-view-btn"
-                      onClick={() => setDetailTransaction(t)}
-                      title="View full details"
-                      aria-label={`View details for ${formatCategoryLabel(t.category, t.subcategory)}`}
-                    >
-                      <Icon name="eye" size={16} />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </aside>
       </div>
 
       <TransactionDetailModal
         transaction={detailTransaction}
         accounts={accounts}
+        allTransactions={transactions}
         onClose={() => setDetailTransaction(null)}
       />
     </div>

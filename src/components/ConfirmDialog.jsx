@@ -1,3 +1,6 @@
+import { useEffect } from "react"
+import ModalPortal from "./ModalPortal"
+
 function ConfirmDialog({
   open,
   title,
@@ -10,46 +13,62 @@ function ConfirmDialog({
   danger = false,
   error,
 }) {
+  useEffect(() => {
+    if (!open) return undefined
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [open])
+
   if (!open) return null
 
   return (
-    <div
-      className="modal-overlay"
-      role="presentation"
-      onClick={loading ? undefined : onCancel}
-    >
+    <ModalPortal>
       <div
-        className="modal-card confirm-dialog"
-        role="alertdialog"
-        aria-labelledby="confirm-dialog-title"
-        aria-describedby="confirm-dialog-message"
-        onClick={(e) => e.stopPropagation()}
+        className="modal-overlay confirm-dialog-overlay"
+        role="presentation"
+        onClick={loading ? undefined : onCancel}
       >
-        <h2 id="confirm-dialog-title">{title}</h2>
-        <p id="confirm-dialog-message" className="confirm-dialog-message">
-          {message}
-        </p>
-        {error && <p className="inline-alert error">{error}</p>}
-        <div className="confirm-dialog-actions modal-form-actions">
-          <button
-            type="button"
-            className={danger ? "confirm-dialog-danger" : "auth-submit"}
-            onClick={onConfirm}
-            disabled={loading}
+        <div
+          className="modal-card confirm-dialog"
+          role="alertdialog"
+          aria-labelledby="confirm-dialog-title"
+          aria-describedby="confirm-dialog-message"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h2 id="confirm-dialog-title">{title}</h2>
+          <p id="confirm-dialog-message" className="confirm-dialog-message">
+            {message}
+          </p>
+          <div
+            className={`confirm-dialog-error-slot${error ? " has-error" : ""}`}
+            aria-live="polite"
           >
-            {loading ? "Please wait…" : confirmLabel}
-          </button>
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={onCancel}
-            disabled={loading}
-          >
-            {cancelLabel}
-          </button>
+            {error ? <p className="inline-alert error">{error}</p> : null}
+          </div>
+          <div className="confirm-dialog-actions modal-form-actions">
+            <button
+              type="button"
+              className={danger ? "confirm-dialog-danger" : "auth-submit"}
+              onClick={onConfirm}
+              disabled={loading}
+            >
+              {loading ? "Please wait…" : confirmLabel}
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={onCancel}
+              disabled={loading}
+            >
+              {cancelLabel}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </ModalPortal>
   )
 }
 

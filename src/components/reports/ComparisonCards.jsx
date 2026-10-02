@@ -1,5 +1,5 @@
 import Icon from "../icons/Icons"
-import { formatMoney } from "../../utils/transactionStats"
+import CurrencyTotalsLines from "../CurrencyTotalsLines"
 
 function ChangeBadge({ change, invert = false }) {
   const isUp = change >= 0
@@ -14,12 +14,15 @@ function ChangeBadge({ change, invert = false }) {
 }
 
 function ComparisonCards({ comparison }) {
+  const currentRows = comparison.byCurrency?.current ?? []
+  const previousRows = comparison.byCurrency?.previous ?? []
+  const multiCurrency = currentRows.filter((r) => r.income || r.expense || r.net).length > 1
+
   const cards = [
     {
       label: "Expenses",
       icon: "expense",
-      current: comparison.expenses.current,
-      previous: comparison.expenses.previous,
+      pick: (r) => r.expense,
       change: comparison.expenses.change,
       variant: "expense",
       invert: true,
@@ -27,16 +30,14 @@ function ComparisonCards({ comparison }) {
     {
       label: "Income",
       icon: "income",
-      current: comparison.income.current,
-      previous: comparison.income.previous,
+      pick: (r) => r.income,
       change: comparison.income.change,
       variant: "income",
     },
     {
       label: "Savings",
       icon: "wallet",
-      current: comparison.savings.current,
-      previous: comparison.savings.previous,
+      pick: (r) => r.net,
       change: comparison.savings.change,
       variant: "balance",
     },
@@ -47,7 +48,7 @@ function ComparisonCards({ comparison }) {
       <div className="reports-section-head">
         <h2 className="reports-section-title">Month over month</h2>
         <p className="reports-section-subtitle muted">
-          This month compared to last month
+          This month compared to last month · per currency
         </p>
       </div>
       <div className="comparison-grid">
@@ -62,12 +63,17 @@ function ComparisonCards({ comparison }) {
               </span>
               <span className="comparison-label">{card.label}</span>
             </div>
-            <span className="comparison-current">{formatMoney(card.current)}</span>
+            <span className="comparison-current">
+              <CurrencyTotalsLines rows={currentRows} pick={card.pick} stacked />
+            </span>
             <div className="comparison-meta">
               <span className="comparison-prev">
-                Last month: {formatMoney(card.previous)}
+                Last month:{" "}
+                <CurrencyTotalsLines rows={previousRows} pick={card.pick} stacked />
               </span>
-              <ChangeBadge change={card.change} invert={card.invert} />
+              {!multiCurrency && (
+                <ChangeBadge change={card.change} invert={card.invert} />
+              )}
             </div>
           </div>
         ))}

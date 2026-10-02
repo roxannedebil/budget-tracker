@@ -40,12 +40,12 @@ export function getColumnDef(id) {
   return DEFAULT_COLUMNS.find((c) => c.id === id)
 }
 
-export function getSortValue(t, columnId, accounts) {
+export function getSortValue(t, columnId, accounts, allTransactions = []) {
   switch (columnId) {
     case "date":
       return new Date(t.date).getTime() || 0
     case "accounts":
-      return formatAccountsCell(t, accounts).toLowerCase()
+      return formatAccountsCell(t, accounts, allTransactions).toLowerCase()
     case "category":
       return categorySortKey(t.category, t.subcategory)
     case "notes":
@@ -64,8 +64,8 @@ export function sortTransactions(transactions, accounts, sort) {
 
   const dir = sort.direction === "asc" ? 1 : -1
   return [...transactions].sort((a, b) => {
-    const av = getSortValue(a, sort.column, accounts)
-    const bv = getSortValue(b, sort.column, accounts)
+    const av = getSortValue(a, sort.column, accounts, transactions)
+    const bv = getSortValue(b, sort.column, accounts, transactions)
 
     if (typeof av === "number" && typeof bv === "number") {
       return (av - bv) * dir
@@ -79,12 +79,12 @@ export function nextSortDirection(current, column) {
   return current.direction === "asc" ? "desc" : "asc"
 }
 
-export function formatCellValue(t, columnId, accounts) {
+export function formatCellValue(t, columnId, accounts, allTransactions = []) {
   switch (columnId) {
     case "date":
       return formatDisplayDate(t.date)
     case "accounts":
-      return formatAccountsCell(t, accounts)
+      return formatAccountsCell(t, accounts, allTransactions)
     case "category":
       return formatCategoryLabel(t.category, t.subcategory)
     case "notes":

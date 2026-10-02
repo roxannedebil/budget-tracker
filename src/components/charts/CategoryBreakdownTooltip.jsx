@@ -1,4 +1,4 @@
-import { formatMoney } from "../../utils/transactionStats"
+import { formatCurrency } from "../../utils/currency"
 
 function CategoryBreakdownTooltip({ active, payload, label, colors }) {
   if (!active || !payload?.length) return null
@@ -6,6 +6,7 @@ function CategoryBreakdownTooltip({ active, payload, label, colors }) {
   const entry = payload[0].payload
   const name = entry.category ?? entry.name ?? label
   const amount = entry.amount ?? entry.total ?? payload[0].value
+  const currency = entry.currency || "PHP"
   const subcategories = entry.subcategories || []
 
   return (
@@ -22,13 +23,15 @@ function CategoryBreakdownTooltip({ active, payload, label, colors }) {
       }}
     >
       <div className="category-breakdown-tooltip-title">{name}</div>
-      <div className="category-breakdown-tooltip-total">{formatMoney(amount)}</div>
+      <div className="category-breakdown-tooltip-total">
+        {formatCurrency(amount, currency)}
+      </div>
       {subcategories.length > 0 && (
         <ul className="category-breakdown-tooltip-subs">
           {subcategories.map((sub) => (
             <li key={sub.subcategory}>
               <span>{sub.subcategory}</span>
-              <span>{formatMoney(sub.total)}</span>
+              <span>{formatCurrency(sub.total, sub.currency || currency)}</span>
             </li>
           ))}
         </ul>

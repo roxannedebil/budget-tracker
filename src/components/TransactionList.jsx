@@ -1,18 +1,22 @@
 import "../App.css"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { supabase } from "../supabaseClient"
-import ConfirmDialog from "./ConfirmDialog"
-import EditTransactionModal from "./EditTransactionModal"
+import { useTransactionRowActions } from "../hooks/useTransactionRowActions"
+import TransactionRowActions from "./TransactionRowActions"
 import {
   FilterDropdown,
   FilterTriggerButton,
 } from "./TransactionFilterPanel"
-import { formatCategoryLabel } from "../utils/categoryDisplay"
 import { formatDisplayDate } from "../utils/formatDate"
 import { AccountsCell } from "./AccountLabel"
 import Icon from "./icons/Icons"
-import { getTypeLabel } from "../utils/transactionDisplay"
+import {
+  getTransactionCategoryCell,
+  getTypeAmountClass,
+  getTypeLabel,
+  getTypePillClass,
+  getNotesWithFeeContext,
+} from "../utils/transactionDisplay"
 import {
   filterTransactions,
   getDefaultFilters,
@@ -26,29 +30,11 @@ import {
   saveColumnOrder,
   sortTransactions,
 } from "../utils/transactionTable"
-import { getTransactionDeleteSummary } from "../utils/transactionDelete"
+import { formatTransactionAmount } from "../utils/currency"
 
 const PAGE_SIZES = [10, 25, 50]
 
-function getTypeBadgeClass(type) {
-  if (type === "expense") return "expense"
-  if (type === "transfer") return "transfer"
-  return "income"
-}
-
-function getAmountClass(type) {
-  if (type === "expense") return "expense-text"
-  if (type === "transfer") return "transfer-text"
-  return "income-text"
-}
-
-function getAmountPrefix(type) {
-  if (type === "expense") return "−"
-  if (type === "transfer") return "⇄"
-  return "+"
-}
-
-function TransactionList({ transactions, accounts, onUpdated }) {
+function TransactionList({ transactions, accounts, profile, onUpdated }) {
   const [filters, setFilters] = useState(getDefaultFilters)
   const [draftFilters, setDraftFilters] = useState(getDefaultFilters)
   const [filterOpen, setFilterOpen] = useState(false)
@@ -57,11 +43,15 @@ function TransactionList({ transactions, accounts, onUpdated }) {
   const [columnOrder, setColumnOrder] = useState(loadColumnOrder)
   const [sort, setSort] = useState({ column: "date", direction: "desc" })
   const [dragColumn, setDragColumn] = useState(null)
-  const [editingTransaction, setEditingTransaction] = useState(null)
-  const [pendingDelete, setPendingDelete] = useState(null)
-  const [deleting, setDeleting] = useState(false)
-  const [deleteError, setDeleteError] = useState("")
   const filterWrapRef = useRef(null)
+
+  const { modals: transactionActionModals, getRowActionProps } =
+    useTransactionRowActions({
+      transactions,
+      accounts,
+      profile,
+      onUpdated,
+    })
 
   const filtered = useMemo(
     () => filterTransactions(transactions, accounts, filters),
@@ -159,40 +149,6 @@ function TransactionList({ transactions, accounts, onUpdated }) {
       return next
     })
     setDragColumn(null)
-  }
-
-  const closeDeleteDialog = () => {
-    if (deleting) return
-    setPendingDelete(null)
-    setDeleteError("")
-  }
-
-  const handleConfirmDelete = async () => {
-    if (!pendingDelete) return
-
-    const id = pendingDelete.transaction_id ?? pendingDelete.id
-    if (!id) {
-      setDeleteError("Could not identify this transaction.")
-      return
-    }
-
-    setDeleting(true)
-    setDeleteError("")
-
-    const { error } = await supabase
-      .from("transactions")
-      .delete()
-      .eq("transaction_id", id)
-
-    setDeleting(false)
-
-    if (error) {
-      setDeleteError(error.message)
-      return
-    }
-
-    setPendingDelete(null)
-    onUpdated?.()
   }
 
   if (transactions.length === 0) {
@@ -330,32 +286,11 @@ function TransactionList({ transactions, accounts, onUpdated }) {
                       t={t}
                       columnId={col.id}
                       accounts={accounts}
+                      allTransactions={transactions}
                     />
                   ))}
                   <td className="col-actions">
-                    <div className="txn-row-actions">
-                      <button
-                        type="button"
-                        className="txn-edit-btn"
-                        onClick={() => setEditingTransaction(t)}
-                        title="Edit transaction"
-                        aria-label={`Edit transaction ${getTransactionDeleteSummary(t)}`}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="txn-delete-btn"
-                        onClick={() => {
-                          setDeleteError("")
-                          setPendingDelete(t)
-                        }}
-                        title="Delete transaction"
-                        aria-label={`Delete transaction ${getTransactionDeleteSummary(t)}`}
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    <TransactionRowActions {...getRowActionProps(t)} />
                   </td>
                 </tr>
               ))
@@ -364,30 +299,7 @@ function TransactionList({ transactions, accounts, onUpdated }) {
         </table>
       </div>
 
-      <EditTransactionModal
-        transaction={editingTransaction}
-        accounts={accounts}
-        transactions={transactions}
-        onClose={() => setEditingTransaction(null)}
-        onSaved={onUpdated}
-      />
-
-      <ConfirmDialog
-        open={Boolean(pendingDelete)}
-        title="Are you sure you want to delete?"
-        message={
-          pendingDelete
-            ? `You are about to delete: ${getTransactionDeleteSummary(pendingDelete)}. This cannot be undone.`
-            : ""
-        }
-        confirmLabel="Delete"
-        cancelLabel="Keep transaction"
-        onConfirm={handleConfirmDelete}
-        onCancel={closeDeleteDialog}
-        loading={deleting}
-        danger
-        error={deleteError}
-      />
+      {transactionActionModals}
 
       <div className="table-pagination">
         <span className="pagination-info">
@@ -437,39 +349,46 @@ function TransactionList({ transactions, accounts, onUpdated }) {
   )
 }
 
-function Cell({ t, columnId, accounts }) {
+function Cell({ t, columnId, accounts, allTransactions }) {
   switch (columnId) {
     case "date":
       return <td className="col-date">{formatDisplayDate(t.date)}</td>
     case "accounts":
       return (
         <td className="col-accounts">
-          <AccountsCell t={t} accounts={accounts} />
+          <AccountsCell
+            t={t}
+            accounts={accounts}
+            allTransactions={allTransactions}
+          />
         </td>
       )
     case "category":
       return (
         <td className="col-category">
           <span className="category-name">
-            {formatCategoryLabel(t.category, t.subcategory)}
+            {getTransactionCategoryCell(t, accounts, { allTransactions })}
           </span>
         </td>
       )
     case "notes":
-      return <td className="col-notes">{t.notes || "—"}</td>
+      return (
+        <td className="col-notes">
+          {getNotesWithFeeContext(t, accounts, allTransactions)}
+        </td>
+      )
     case "type":
       return (
-        <td>
-          <span className={`badge ${getTypeBadgeClass(t.type)}`}>
+        <td className="col-type">
+          <span className={`type-pill type-${getTypePillClass(t.type)}`}>
             {getTypeLabel(t)}
           </span>
         </td>
       )
     case "amount":
       return (
-        <td className={`col-amount amount ${getAmountClass(t.type)}`}>
-          {getAmountPrefix(t.type)}₱
-          {Number(t.amount).toLocaleString()}
+        <td className={`col-amount amount ${getTypeAmountClass(t.type)}`}>
+          {formatTransactionAmount(t, { signed: true })}
         </td>
       )
     default:

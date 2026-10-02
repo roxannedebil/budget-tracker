@@ -9,14 +9,27 @@ import StatCard from "../components/StatCard"
 import Icon from "../components/icons/Icons"
 import { supabase } from "../supabaseClient"
 import { getAccountIcon, getAccountTypeLabel } from "../utils/accounts"
+import { accountColorStyleVars } from "../utils/accountColor"
+import { AccountColorDot } from "../components/AccountLabel"
 import {
   getAccountActivity,
   getTransactionsForAccount,
 } from "../utils/accountStats"
 import { isAccountInUse } from "../utils/accountUsage"
-import { formatMoney } from "../utils/transactionStats"
-
-function Accounts({ accounts, transactions, fetchAccounts, loading }) {
+import AccountBalanceLines from "../components/AccountBalanceLines"
+import CurrencyTotalsLines from "../components/CurrencyTotalsLines"
+import {
+  summarizeBalancesByCurrency,
+  summarizeByCurrency,
+} from "../utils/monthByCurrency"
+function Accounts({
+  accounts,
+  transactions,
+  profile,
+  fetchAccounts,
+  onTransactionsUpdated,
+  loading,
+}) {
   const [selectedId, setSelectedId] = useState(null)
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [editTarget, setEditTarget] = useState(null)
@@ -41,9 +54,14 @@ function Accounts({ accounts, transactions, fetchAccounts, loading }) {
     }
   }, [accounts, selectedId])
 
-  const totalBalance = activity.reduce((sum, a) => sum + a.balance, 0)
-  const totalIncome = activity.reduce((sum, a) => sum + a.income, 0)
-  const totalExpenses = activity.reduce((sum, a) => sum + a.spent, 0)
+  const totalsByCurrency = useMemo(
+    () => summarizeByCurrency(transactions),
+    [transactions]
+  )
+  const balancesByCurrency = useMemo(
+    () => summarizeBalancesByCurrency(accounts, transactions),
+    [accounts, transactions]
+  )
 
   const selectedAccount =
     activity.find((a) => a.account_id === selectedId) ?? null
@@ -96,7 +114,8 @@ function Accounts({ accounts, transactions, fetchAccounts, loading }) {
     return (
       <li key={account.account_id} className="accounts-picker-item">
         <div
-          className={`accounts-picker-card ${isSelected ? "selected" : ""}`}
+          className={`accounts-picker-card has-account-color ${isSelected ? "selected" : ""}`}
+          style={accountColorStyleVars(account)}
         >
           <div className="accounts-picker-card-row">
             <button
@@ -110,12 +129,14 @@ function Accounts({ accounts, transactions, fetchAccounts, loading }) {
               </span>
               <span className="accounts-picker-card-text">
                 <span className="accounts-picker-card-title-row">
-                  <span className="accounts-picker-card-name">{account.name}</span>
-                  <span
-                    className={`accounts-picker-card-balance ${account.balance >= 0 ? "positive" : "negative"}`}
-                  >
-                    {formatMoney(account.balance)}
+                  <span className="accounts-picker-card-name">
+                    <AccountColorDot account={account} />
+                    {account.name}
                   </span>
+                  <AccountBalanceLines
+                    account={account}
+                    valueClassName="accounts-picker-card-balance"
+                  />
                 </span>
                 <span className="accounts-picker-card-type muted">
                   {getAccountTypeLabel(account.account_type)}
@@ -171,20 +192,41 @@ function Accounts({ accounts, transactions, fetchAccounts, loading }) {
           <StatCard
             icon={<Icon name="income" size={20} />}
             label="Total income"
-            value={formatMoney(totalIncome)}
+            value={
+              <CurrencyTotalsLines
+                rows={totalsByCurrency}
+                pick={(r) => r.income}
+                stacked
+              />
+            }
             variant="income"
+            hint="Per currency"
           />
           <StatCard
             icon={<Icon name="expense" size={20} />}
             label="Total expenses"
-            value={formatMoney(totalExpenses)}
+            value={
+              <CurrencyTotalsLines
+                rows={totalsByCurrency}
+                pick={(r) => r.expense}
+                stacked
+              />
+            }
             variant="expense"
+            hint="Per currency"
           />
           <StatCard
             icon={<Icon name="balance" size={20} />}
             label="Combined balance"
-            value={formatMoney(totalBalance)}
+            value={
+              <CurrencyTotalsLines
+                rows={balancesByCurrency}
+                pick={(r) => r.total}
+                stacked
+              />
+            }
             variant="balance"
+            hint="Per currency"
           />
         </div>
       )}
@@ -232,8 +274,11 @@ function Accounts({ accounts, transactions, fetchAccounts, loading }) {
               <AccountHistoryPanel
                 account={selectedAccount}
                 transactions={accountTransactions}
+                allTransactions={transactions}
                 accounts={accounts}
+                profile={profile}
                 loading={loading}
+                onUpdated={onTransactionsUpdated}
               />
             )}
           </div>

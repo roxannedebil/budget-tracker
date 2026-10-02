@@ -1,4 +1,4 @@
-/* Light mode polish — uses cream tokens from index.css */
+/* Light mode component polish — uses semantic tokens from index.css */
 
 [data-theme="light"] .content {
   background: var(--bg);
@@ -67,14 +67,12 @@
   background: color-mix(in srgb, var(--bg-card) 80%, transparent);
 }
 
-[data-theme="light"] .accounts-history-segments,
-[data-theme="light"] .auth-tabs {
+[data-theme="light"] .accounts-history-segments {
   background: var(--bg-muted);
   border-color: var(--border-subtle);
 }
 
-[data-theme="light"] .accounts-history-segment.active,
-[data-theme="light"] .auth-tabs button.active {
+[data-theme="light"] .accounts-history-segment.active {
   background: var(--bg-elevated);
 }
 

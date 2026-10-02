@@ -6,7 +6,17 @@ import {
   getAccountTypeLabel,
 } from "../utils/accounts"
 import { formatMoney } from "../utils/transactionStats"
+import AccountCurrencyEditor from "./AccountCurrencyEditor"
+import CurrencySelect from "./CurrencySelect"
+import { parseAccountCurrencies } from "../utils/accountCurrencies"
+import { useCurrency } from "../context/CurrencyContext"
 import Icon from "./icons/Icons"
+import AccountColorPicker from "./AccountColorPicker"
+import { AccountColorDot } from "./AccountLabel"
+import {
+  getAccountDisplayColor,
+  normalizeAccountColorHex,
+} from "../utils/accountColor"
 
 export function AccountTypePicker({ value, onChange }) {
   return (
@@ -30,9 +40,163 @@ export function AccountTypePicker({ value, onChange }) {
   )
 }
 
+function AccountFormFields({
+  name,
+  setName,
+  accountType,
+  setAccountType,
+  colorHex,
+  setColorHex,
+  defaultCurrency,
+  setDefaultCurrency,
+  allowMulti,
+  setAllowMulti,
+  extraCurrencies,
+  setExtraCurrencies,
+  namePlaceholder = "e.g. BDO Payroll, GCash",
+  previewAccount,
+}) {
+  const [settingsTab, setSettingsTab] = useState("currency")
+  const previewName = (name || previewAccount?.name || "Account").trim() || "Account"
+  const previewType = accountType || previewAccount?.account_type || "bank"
+  const previewColor = getAccountDisplayColor({
+    color_hex: colorHex,
+    account_id: previewAccount?.account_id,
+    name: previewName,
+  })
+
+  useEffect(() => {
+    setSettingsTab("currency")
+  }, [previewAccount?.account_id])
+
+  return (
+    <div className="accounts-modal-sections">
+      {previewAccount && (
+        <div
+          className="accounts-modal-live-preview"
+          style={{ "--account-color": previewColor }}
+        >
+          <span
+            className="account-color-dot accounts-modal-preview-dot"
+            style={{ background: previewColor }}
+            aria-hidden="true"
+          />
+          <Icon name={getAccountIcon(previewType)} size={18} />
+          <span className="accounts-modal-preview-name">{previewName}</span>
+        </div>
+      )}
+
+      <section className="accounts-modal-section" aria-labelledby="accounts-section-details">
+        <h3 id="accounts-section-details" className="accounts-modal-section-title">
+          Details
+        </h3>
+        <label className="form-field accounts-modal-field">
+          <span>Account name</span>
+          <input
+            type="text"
+            placeholder={namePlaceholder}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            autoFocus={Boolean(previewAccount)}
+          />
+        </label>
+        <div className="form-field accounts-modal-field">
+          <span>Type</span>
+          <AccountTypePicker value={accountType} onChange={setAccountType} />
+        </div>
+      </section>
+
+      <div className="accounts-modal-tabs-wrap">
+        <div className="accounts-modal-tabs" role="tablist" aria-label="Account settings">
+          <button
+            type="button"
+            role="tab"
+            id="accounts-tab-currency"
+            aria-selected={settingsTab === "currency"}
+            aria-controls="accounts-panel-currency"
+            className={`accounts-modal-tab${settingsTab === "currency" ? " active" : ""}`}
+            onClick={() => setSettingsTab("currency")}
+          >
+            Currency
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="accounts-tab-color"
+            aria-selected={settingsTab === "color"}
+            aria-controls="accounts-panel-color"
+            className={`accounts-modal-tab${settingsTab === "color" ? " active" : ""}`}
+            onClick={() => setSettingsTab("color")}
+          >
+            Color
+          </button>
+        </div>
+
+        <div
+          id="accounts-panel-currency"
+          role="tabpanel"
+          aria-labelledby="accounts-tab-currency"
+          className="accounts-modal-tabpanel"
+          hidden={settingsTab !== "currency"}
+        >
+          <CurrencySelect
+            label="Default currency"
+            value={defaultCurrency}
+            onChange={setDefaultCurrency}
+          />
+          <div className="accounts-modal-switch-row">
+            <div className="accounts-modal-switch-copy">
+              <span className="accounts-modal-switch-label">Multiple currencies</span>
+              <p className="muted accounts-modal-switch-hint">
+                Cash or wallets that hold more than one currency
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              className="accounts-modal-switch-input"
+              checked={allowMulti}
+              onChange={(e) => setAllowMulti(e.target.checked)}
+              aria-label="Allow multiple currencies"
+            />
+          </div>
+          {allowMulti && (
+            <div className="accounts-modal-nested">
+              <AccountCurrencyEditor
+                enabled
+                defaultCurrency={defaultCurrency}
+                accountCurrencies={extraCurrencies}
+                onChangeAccountCurrencies={setExtraCurrencies}
+              />
+            </div>
+          )}
+        </div>
+
+        <div
+          id="accounts-panel-color"
+          role="tabpanel"
+          aria-labelledby="accounts-tab-color"
+          className="accounts-modal-tabpanel"
+          hidden={settingsTab !== "color"}
+        >
+          <p className="muted accounts-modal-tabpanel-hint">
+            Used on account cards and beside names in transactions.
+          </p>
+          <AccountColorPicker value={colorHex} onChange={setColorHex} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function AddAccountModal({ open, onClose, onSuccess }) {
+  const { primary } = useCurrency()
   const [name, setName] = useState("")
   const [accountType, setAccountType] = useState("bank")
+  const [allowMulti, setAllowMulti] = useState(false)
+  const [defaultCurrency, setDefaultCurrency] = useState(primary)
+  const [extraCurrencies, setExtraCurrencies] = useState([])
+  const [colorHex, setColorHex] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
 
@@ -40,8 +204,12 @@ export function AddAccountModal({ open, onClose, onSuccess }) {
     if (!open) return
     setName("")
     setAccountType("bank")
+    setAllowMulti(false)
+    setDefaultCurrency(primary)
+    setExtraCurrencies([])
+    setColorHex(null)
     setError("")
-  }, [open])
+  }, [open, primary])
 
   if (!open) return null
 
@@ -61,6 +229,10 @@ export function AddAccountModal({ open, onClose, onSuccess }) {
         name: name.trim(),
         account_type: accountType,
         user_id: user?.id,
+        allow_multiple_currencies: allowMulti,
+        default_currency: defaultCurrency,
+        account_currencies: allowMulti ? extraCurrencies : [],
+        color_hex: normalizeAccountColorHex(colorHex),
       },
     ])
 
@@ -100,22 +272,20 @@ export function AddAccountModal({ open, onClose, onSuccess }) {
         </div>
 
         <form className="accounts-add-modal-form" onSubmit={handleSubmit}>
-          <label className="form-field">
-            <span>Account name</span>
-            <input
-              type="text"
-              placeholder="e.g. BDO Payroll, GCash"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              autoFocus
-            />
-          </label>
-
-          <div className="form-field">
-            <span>Type</span>
-            <AccountTypePicker value={accountType} onChange={setAccountType} />
-          </div>
+          <AccountFormFields
+            name={name}
+            setName={setName}
+            accountType={accountType}
+            setAccountType={setAccountType}
+            colorHex={colorHex}
+            setColorHex={setColorHex}
+            defaultCurrency={defaultCurrency}
+            setDefaultCurrency={setDefaultCurrency}
+            allowMulti={allowMulti}
+            setAllowMulti={setAllowMulti}
+            extraCurrencies={extraCurrencies}
+            setExtraCurrencies={setExtraCurrencies}
+          />
 
           {error && <p className="inline-alert error">{error}</p>}
 
@@ -145,6 +315,10 @@ export function AddAccountModal({ open, onClose, onSuccess }) {
 export function EditAccountModal({ open, account, onClose, onSuccess }) {
   const [name, setName] = useState("")
   const [accountType, setAccountType] = useState("bank")
+  const [allowMulti, setAllowMulti] = useState(false)
+  const [defaultCurrency, setDefaultCurrency] = useState("PHP")
+  const [extraCurrencies, setExtraCurrencies] = useState([])
+  const [colorHex, setColorHex] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
 
@@ -152,6 +326,10 @@ export function EditAccountModal({ open, account, onClose, onSuccess }) {
     if (!open || !account) return
     setName(account.name ?? "")
     setAccountType(account.account_type || "bank")
+    setAllowMulti(Boolean(account.allow_multiple_currencies))
+    setDefaultCurrency(account.default_currency || "PHP")
+    setExtraCurrencies(parseAccountCurrencies(account.account_currencies))
+    setColorHex(normalizeAccountColorHex(account.color_hex))
     setError("")
     setSubmitting(false)
   }, [open, account])
@@ -174,6 +352,10 @@ export function EditAccountModal({ open, account, onClose, onSuccess }) {
       .update({
         name: trimmed,
         account_type: accountType,
+        allow_multiple_currencies: allowMulti,
+        default_currency: defaultCurrency,
+        account_currencies: allowMulti ? extraCurrencies : [],
+        color_hex: normalizeAccountColorHex(colorHex),
       })
       .eq("account_id", account.account_id)
 
@@ -207,28 +389,28 @@ export function EditAccountModal({ open, account, onClose, onSuccess }) {
           <div className="accounts-modal-head-text">
             <h2 id="accounts-edit-modal-title">Edit account</h2>
             <p className="muted accounts-add-modal-hint">
-              Update the name or type shown across the app.
+              Name, color, and currency settings for this account.
             </p>
           </div>
         </div>
 
         <form className="accounts-add-modal-form" onSubmit={handleSubmit}>
-          <label className="form-field">
-            <span>Account name</span>
-            <input
-              type="text"
-              placeholder="Account name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              autoFocus
-            />
-          </label>
-
-          <div className="form-field">
-            <span>Type</span>
-            <AccountTypePicker value={accountType} onChange={setAccountType} />
-          </div>
+          <AccountFormFields
+            name={name}
+            setName={setName}
+            accountType={accountType}
+            setAccountType={setAccountType}
+            colorHex={colorHex}
+            setColorHex={setColorHex}
+            defaultCurrency={defaultCurrency}
+            setDefaultCurrency={setDefaultCurrency}
+            allowMulti={allowMulti}
+            setAllowMulti={setAllowMulti}
+            extraCurrencies={extraCurrencies}
+            setExtraCurrencies={setExtraCurrencies}
+            namePlaceholder="Account name"
+            previewAccount={account}
+          />
 
           {error && <p className="inline-alert error">{error}</p>}
 
@@ -263,9 +445,11 @@ export function DeleteAccountModal({
   onConfirm,
   onCancel,
 }) {
+  const { primary } = useCurrency()
   if (!open || !account) return null
 
   const balance = Number(account.balance) || 0
+  const balanceCurrency = (account.default_currency || primary).toUpperCase()
 
   return (
     <div
@@ -300,7 +484,10 @@ export function DeleteAccountModal({
             <Icon name={getAccountIcon(account.account_type)} size={22} />
           </span>
           <div className="accounts-delete-preview-text">
-            <p className="accounts-delete-preview-name">{account.name}</p>
+            <p className="accounts-delete-preview-name">
+              <AccountColorDot account={account} />
+              {account.name}
+            </p>
             <p className="accounts-delete-preview-meta muted">
               {getAccountTypeLabel(account.account_type)}
             </p>
@@ -308,7 +495,7 @@ export function DeleteAccountModal({
           <p
             className={`accounts-delete-preview-balance ${balance >= 0 ? "positive" : "negative"}`}
           >
-            {formatMoney(balance)}
+            {formatMoney(balance, balanceCurrency)}
           </p>
         </div>
 

@@ -9,10 +9,11 @@ import {
 } from "recharts"
 import { useChartColors } from "../../hooks/useChartColors"
 import { formatMoney } from "../../utils/transactionStats"
+import { formatChartTick } from "../../utils/currencySymbol"
 import EmptyState from "../EmptyState"
 import Icon from "../icons/Icons"
 
-function CashFlowLineChart({ data }) {
+function CashFlowLineChart({ data, currencyCode = "PHP" }) {
   const colors = useChartColors()
 
   if (data.length === 0) {
@@ -40,10 +41,10 @@ function CashFlowLineChart({ data }) {
           tick={{ fill: colors.text, fontSize: 11 }}
           axisLine={{ stroke: colors.grid }}
           tickLine={false}
-          tickFormatter={(v) => `₱${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+          tickFormatter={(v) => formatChartTick(v, currencyCode)}
         />
         <Tooltip
-          formatter={(value) => formatMoney(value)}
+          formatter={(value) => formatMoney(value, currencyCode)}
           contentStyle={{
             background: colors.card,
             border: `1px solid ${colors.grid}`,

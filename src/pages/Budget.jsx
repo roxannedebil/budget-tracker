@@ -8,13 +8,16 @@ import {
   buildBudgetVsActual,
   groupExpensesByCategory,
 } from "../utils/analytics"
-import { getBudgetSummary } from "../utils/budgetStats"
 import {
-  formatMoney,
-  getCurrentMonthTransactions,
-  getExpenses,
-} from "../utils/transactionStats"
+  getBudgetSummary,
+  getCategorySpendRows,
+  getCategorySpentInCurrency,
+} from "../utils/budgetStats"
+import { getCurrentMonthTransactions } from "../utils/transactionStats"
+import { summarizeByCurrency } from "../utils/monthByCurrency"
 import StatCard from "../components/StatCard"
+import CurrencyTotalsLines from "../components/CurrencyTotalsLines"
+import { formatCurrency } from "../utils/currency"
 import Icon from "../components/icons/Icons"
 import ChartCard from "../components/ChartCard"
 import BudgetVsActualChart from "../components/charts/BudgetVsActualChart"
@@ -22,6 +25,8 @@ import ProgressRing from "../components/charts/ProgressRing"
 import LoadingState from "../components/LoadingState"
 import EmptyState from "../components/EmptyState"
 import ConfirmDialog from "../components/ConfirmDialog"
+import { useCurrency } from "../context/CurrencyContext"
+import { currencyInputPrefix } from "../utils/currencySymbol"
 
 const BUDGET_KEY = "budget-limits"
 
@@ -34,6 +39,8 @@ function loadBudgetLimits() {
 }
 
 function Budget({ transactions, loading }) {
+  const { primary } = useCurrency()
+  const amountPrefix = currencyInputPrefix(primary)
   const monthTx = useMemo(
     () => getCurrentMonthTransactions(transactions),
     [transactions]
@@ -42,7 +49,10 @@ function Budget({ transactions, loading }) {
     () => groupExpensesByCategory(monthTx),
     [monthTx]
   )
-  const totalSpent = getExpenses(monthTx)
+  const monthByCurrency = useMemo(
+    () => summarizeByCurrency(monthTx),
+    [monthTx]
+  )
   const [limits, setLimits] = useState(loadBudgetLimits)
   const [editing, setEditing] = useState(null)
   const [draft, setDraft] = useState("")
@@ -73,26 +83,30 @@ function Budget({ transactions, loading }) {
     [savedCategories, limits]
   )
 
-  const unbudgetedSpending = useMemo(
-    () =>
-      spendingByCategory.filter(
-        (c) => !limits[c.category] || Number(limits[c.category]) <= 0
-      ),
-    [spendingByCategory, limits]
-  )
+  const unbudgetedSpending = useMemo(() => {
+    const byCat = new Map()
+    for (const row of spendingByCategory) {
+      if (limits[row.category] && Number(limits[row.category]) > 0) continue
+      if (!byCat.has(row.category)) byCat.set(row.category, [])
+      byCat.get(row.category).push(row)
+    }
+    return [...byCat.entries()]
+      .map(([category, rows]) => ({ category, rows }))
+      .sort((a, b) => a.category.localeCompare(b.category))
+  }, [spendingByCategory, limits])
 
   useEffect(() => {
     localStorage.setItem(BUDGET_KEY, JSON.stringify(limits))
   }, [limits])
 
   const summary = useMemo(
-    () => getBudgetSummary(spendingByCategory, limits),
-    [spendingByCategory, limits]
+    () => getBudgetSummary(spendingByCategory, limits, primary),
+    [spendingByCategory, limits, primary]
   )
 
   const budgetVsActual = useMemo(
-    () => buildBudgetVsActual(spendingByCategory, limits),
-    [spendingByCategory, limits]
+    () => buildBudgetVsActual(spendingByCategory, limits, primary),
+    [spendingByCategory, limits, primary]
   )
 
   const [removeBudgetTarget, setRemoveBudgetTarget] = useState(null)
@@ -187,20 +201,28 @@ function Budget({ transactions, loading }) {
           <StatCard
             icon={<Icon name="spend" size={20} />}
             label="Spent"
-            value={formatMoney(totalSpent)}
+            value={
+              <CurrencyTotalsLines
+                rows={monthByCurrency}
+                pick={(r) => r.expense}
+                stacked
+              />
+            }
             variant="expense"
+            hint="Per currency"
           />
           <StatCard
             icon={<Icon name="target" size={20} />}
             label="Total budget"
-            value={formatMoney(summary.totalBudget)}
-            hint={`${summary.budgetedCount} with limits`}
+            value={formatCurrency(summary.totalBudget, primary)}
+            hint={`Limits in ${primary} · ${summary.budgetedCount} categor${summary.budgetedCount === 1 ? "y" : "ies"}`}
           />
           <StatCard
             icon={<Icon name="wallet" size={20} />}
             label="Remaining"
-            value={formatMoney(summary.remaining)}
+            value={formatCurrency(summary.remaining, primary)}
             variant="income"
+            hint={`In ${primary} (budget limits)`}
           />
           <StatCard
             icon={
@@ -225,7 +247,10 @@ function Budget({ transactions, loading }) {
         title="Budget vs actual"
         className="chart-span-full module-card"
       >
-        <BudgetVsActualChart data={budgetVsActual} />
+        <p className="muted compact-hint budget-chart-hint">
+          Chart compares {primary} spend to limits set in {primary}.
+        </p>
+        <BudgetVsActualChart data={budgetVsActual} currencyCode={primary} />
       </ChartCard>
 
       <div id="budget-add-panel" className="card budget-add-panel module-card">
@@ -252,7 +277,7 @@ function Budget({ transactions, loading }) {
           <label className="budget-add-field">
             <span>Monthly limit</span>
             <div className="amount-input">
-              <span className="currency">₱</span>
+              <span className="currency">{amountPrefix}</span>
               <input
                 type="number"
                 min="0"
@@ -287,12 +312,21 @@ function Budget({ transactions, loading }) {
         ) : (
           <div className="budget-cards">
             {budgetedCategories.map((category) => {
-              const spent =
-                spendingByCategory.find((c) => c.category === category)
-                  ?.total ?? 0
+              const spendRows = getCategorySpendRows(
+                spendingByCategory,
+                category
+              )
+              const spentPrimary = getCategorySpentInCurrency(
+                spendingByCategory,
+                category,
+                primary
+              )
               const limit = Number(limits[category])
-              const pct = limit ? (spent / limit) * 100 : 0
-              const over = spent > limit
+              const pct = limit ? (spentPrimary / limit) * 100 : 0
+              const over = spentPrimary > limit
+              const hasOtherCurrencies = spendRows.some(
+                (r) => (r.currency || "").toUpperCase() !== primary.toUpperCase()
+              )
               const isEditing = editing === category
 
               return (
@@ -314,8 +348,17 @@ function Budget({ transactions, loading }) {
                       </span>
                     </div>
                     <div className="budget-card-amounts">
-                      <span className="expense-text">{formatMoney(spent)}</span>
-                      <span className="muted"> / {formatMoney(limit)}</span>
+                      <span className="expense-text">
+                        <CurrencyTotalsLines
+                          rows={spendRows}
+                          pick={(r) => r.total}
+                          stacked
+                        />
+                      </span>
+                      <span className="muted">
+                        {" "}
+                        / {formatCurrency(limit, primary)}
+                      </span>
                     </div>
                   </div>
 
@@ -326,14 +369,19 @@ function Budget({ transactions, loading }) {
                     />
                   </div>
                   <p className="budget-pct muted">
-                    {pct.toFixed(0)}% used
-                    {over && ` · ${formatMoney(spent - limit)} over`}
+                    {pct.toFixed(0)}% of {primary} limit used
+                    {over &&
+                      ` · ${formatCurrency(spentPrimary - limit, primary)} over`}
+                    {hasOtherCurrencies &&
+                      " · Other currencies shown above; bar uses " +
+                        primary +
+                        " only"}
                   </p>
 
                   {isEditing ? (
                     <div className="budget-card-edit">
                       <div className="amount-input budget-edit-amount">
-                        <span className="currency">₱</span>
+                        <span className="currency">{amountPrefix}</span>
                         <input
                           type="number"
                           min="0"
@@ -402,11 +450,17 @@ function Budget({ transactions, loading }) {
             budget only if you want to track them.
           </p>
           <ul className="budget-unbudgeted-list">
-            {unbudgetedSpending.map(({ category, total }) => (
+            {unbudgetedSpending.map(({ category, rows }) => (
               <li key={category}>
                 <div className="budget-unbudgeted-row">
                   <span className="budget-category">{category}</span>
-                  <span className="expense-text">{formatMoney(total)}</span>
+                  <span className="expense-text">
+                    <CurrencyTotalsLines
+                      rows={rows}
+                      pick={(r) => r.total}
+                      stacked
+                    />
+                  </span>
                 </div>
                 <button
                   type="button"

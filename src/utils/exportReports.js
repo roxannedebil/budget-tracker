@@ -1,7 +1,8 @@
 import * as XLSX from "xlsx"
 import { formatDisplayDate } from "./formatDate"
-import { formatMoney } from "./transactionStats"
 import { formatFilterDateRange } from "./reportFilters"
+import { getTransactionTypeDisplayLabel } from "./transactionDisplay"
+import { formatCurrency } from "./currency"
 
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob)
@@ -15,7 +16,7 @@ function downloadBlob(blob, filename) {
 function txRow(t) {
   return {
     Date: formatDisplayDate(t.date),
-    Type: t.type,
+    Type: getTransactionTypeDisplayLabel(t),
     Category: t.category || "",
     Subcategory: t.subcategory || "",
     Amount: Number(t.amount),
@@ -27,7 +28,7 @@ export function exportTransactionsCsv(transactions, filename = "transactions.csv
   const headers = ["Date", "Type", "Category", "Subcategory", "Amount", "Notes"]
   const rows = transactions.map((t) => [
     formatDisplayDate(t.date),
-    t.type,
+    getTransactionTypeDisplayLabel(t),
     t.category || "",
     t.subcategory || "",
     Number(t.amount),
@@ -60,22 +61,27 @@ export function exportReportExcel({
     ["Generated", formatDisplayDate(new Date())],
     [],
     ["Metric", "Value"],
-    ["Income", summary.income],
-    ["Expenses", summary.expenses],
-    ["Net savings", summary.net],
     ["Transactions", summary.count],
+    [],
+    ["Currency", "Income", "Expenses", "Net"],
+    ...(summary.byCurrency || []).map((r) => [
+      r.currency,
+      r.income,
+      r.expense,
+      r.net,
+    ]),
   ])
 
   const txSheet = XLSX.utils.json_to_sheet(transactions.map(txRow))
 
   const expenseSheet = XLSX.utils.aoa_to_sheet([
-    ["Category", "Amount"],
-    ...expenseByCategory.map((r) => [r.category, r.total]),
+    ["Category", "Currency", "Amount"],
+    ...expenseByCategory.map((r) => [r.category, r.currency, r.total]),
   ])
 
   const incomeSheet = XLSX.utils.aoa_to_sheet([
-    ["Category", "Amount"],
-    ...incomeByCategory.map((r) => [r.category, r.total]),
+    ["Category", "Currency", "Amount"],
+    ...incomeByCategory.map((r) => [r.category, r.currency, r.total]),
   ])
 
   const insightsSheet = XLSX.utils.aoa_to_sheet([
@@ -105,18 +111,23 @@ export function exportSummaryCsv({
     `Date range,${formatFilterDateRange(filters)}`,
     ``,
     `Summary`,
-    `Income,${summary.income}`,
-    `Expenses,${summary.expenses}`,
-    `Net,${summary.net}`,
     `Transactions,${summary.count}`,
+    `Currency,Income,Expenses,Net`,
+    ...(summary.byCurrency || []).map(
+      (r) => `${r.currency},${r.income},${r.expense},${r.net}`
+    ),
     ``,
     `Expenses by category`,
-    `Category,Amount`,
-    ...expenseByCategory.map((r) => `${r.category},${r.total}`),
+    `Category,Currency,Amount`,
+    ...expenseByCategory.map(
+      (r) => `${r.category},${r.currency},${r.total}`
+    ),
     ``,
     `Income by category`,
-    `Category,Amount`,
-    ...incomeByCategory.map((r) => `${r.category},${r.total}`),
+    `Category,Currency,Amount`,
+    ...incomeByCategory.map(
+      (r) => `${r.category},${r.currency},${r.total}`
+    ),
     ``,
     `Transactions`,
     `Date,Type,Category,Subcategory,Amount,Notes`,
@@ -132,11 +143,18 @@ export function exportSummaryCsv({
   )
 }
 
-export function formatSummaryForDisplay(summary) {
+export function formatSummaryForDisplay(summary, fallbackCurrency = "USD") {
+  const rows = summary.byCurrency || []
+  const line = (pick) =>
+    rows
+      .map((r) => formatCurrency(pick(r), r.currency))
+      .filter(Boolean)
+      .join(" · ") ||
+    formatCurrency(0, rows[0]?.currency || fallbackCurrency)
   return {
-    income: formatMoney(summary.income),
-    expenses: formatMoney(summary.expenses),
-    net: formatMoney(summary.net),
+    income: line((r) => r.income),
+    expenses: line((r) => r.expense),
+    net: line((r) => r.net),
     count: String(summary.count),
   }
 }

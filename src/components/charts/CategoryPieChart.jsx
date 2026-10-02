@@ -19,6 +19,7 @@ function CategoryPieChart({ data, emptyTitle = "No data", emptyMessage }) {
     .map((d) => ({
       category: d.category,
       amount: d.total ?? d.amount,
+      currency: d.currency,
       subcategories: d.subcategories ?? [],
     }))
 

@@ -33,8 +33,14 @@ export function summarizeTransactionsByDay(transactions) {
 
     const amount = Number(t.amount) || 0
     if (t.type === "income") map[key].income += amount
-    else if (t.type === "expense") map[key].expense += amount
-    else if (t.type === "transfer") map[key].transfer += amount
+    else if (t.type === "expense" || t.type === "fee") map[key].expense += amount
+    else if (
+      t.type === "transfer" ||
+      t.type === "transfer_out" ||
+      t.type === "transfer_in"
+    ) {
+      map[key].transfer += amount
+    }
 
     map[key].count += 1
     map[key].items.push(t)

@@ -2,10 +2,22 @@ import { useMemo, useState } from "react"
 import Icon from "./icons/Icons"
 import { getAccountIcon, getAccountTypeLabel } from "../utils/accounts"
 import { groupTransactionsByMonthLabel } from "../utils/accountStats"
-import { formatCategoryLabel } from "../utils/categoryDisplay"
+import {
+  getTransactionAmountPrefix,
+  getTransactionCategoryCell,
+  getTypeLabel,
+  getTypePillClass,
+  getNotesWithFeeContext,
+} from "../utils/transactionDisplay"
+import { isExpenseTransaction } from "../utils/transactionTypes"
 import { formatDisplayDate } from "../utils/formatDate"
 import { formatMoney } from "../utils/transactionStats"
-import TransactionDetailModal from "./TransactionDetailModal"
+import { useCurrency } from "../context/CurrencyContext"
+import { formatTransactionAmount } from "../utils/currency"
+import { isTransferLegForVolume } from "../utils/transactionTypes"
+import AccountBalanceLines from "./AccountBalanceLines"
+import { accountColorStyleVars } from "../utils/accountColor"
+import { AccountColorDot } from "./AccountLabel"
 
 const TABS = [
   { id: "all", label: "All" },
@@ -15,19 +27,16 @@ const TABS = [
 ]
 
 function getAmountClass(type, accountId, t) {
-  if (type === "expense") return "expense-text"
-  if (type === "transfer") {
-    return t.from_account_id === accountId ? "expense-text" : "income-text"
+  if (type === "expense" || type === "fee") return "expense-text"
+  if (type === "income") return "income-text"
+  if (
+    type === "transfer" ||
+    type === "transfer_in" ||
+    type === "transfer_out"
+  ) {
+    return "transfer-text"
   }
   return "income-text"
-}
-
-function getAmountPrefix(type, accountId, t) {
-  if (type === "expense") return "−"
-  if (type === "transfer") {
-    return t.from_account_id === accountId ? "−" : "+"
-  }
-  return "+"
 }
 
 function transferTotal(account) {
@@ -35,76 +44,72 @@ function transferTotal(account) {
 }
 
 function AccountDetailHero({ account }) {
+  const { primary } = useCurrency()
+  const summaryCurrency = (account.default_currency || primary).toUpperCase()
   return (
-    <div className="accounts-detail-hero accounts-detail-hero-compact" aria-live="polite">
+    <div
+      className="accounts-detail-hero accounts-detail-hero-compact has-account-color"
+      style={accountColorStyleVars(account)}
+      aria-live="polite"
+    >
       <div className="accounts-detail-hero-row">
         <span className="accounts-detail-hero-icon" aria-hidden="true">
           <Icon name={getAccountIcon(account.account_type)} size={22} />
         </span>
         <div className="accounts-detail-hero-titles">
-          <h2 className="accounts-detail-hero-name">{account.name}</h2>
+          <h2 className="accounts-detail-hero-name">
+            <AccountColorDot account={account} />
+            {account.name}
+          </h2>
           <p className="accounts-detail-hero-type muted">
             {getAccountTypeLabel(account.account_type)}
           </p>
         </div>
         <div className="accounts-detail-hero-balance-wrap">
           <span className="accounts-detail-hero-balance-label muted">Balance</span>
-          <p
-            className={`accounts-detail-hero-balance ${account.balance >= 0 ? "positive" : "negative"}`}
-          >
-            {formatMoney(account.balance)}
-          </p>
+          <AccountBalanceLines
+            account={account}
+            valueClassName="accounts-detail-hero-balance"
+          />
         </div>
       </div>
       <dl className="accounts-detail-metrics">
         <div className="accounts-detail-metric income">
           <dt>Income</dt>
-          <dd>{formatMoney(account.income)}</dd>
+          <dd>{formatMoney(account.income, summaryCurrency)}</dd>
         </div>
         <div className="accounts-detail-metric expense">
           <dt>Expenses</dt>
-          <dd>{formatMoney(account.spent)}</dd>
+          <dd>{formatMoney(account.spent, summaryCurrency)}</dd>
         </div>
         <div className="accounts-detail-metric transfer">
           <dt>Transfers</dt>
-          <dd>{formatMoney(transferTotal(account))}</dd>
+          <dd>{formatMoney(transferTotal(account), summaryCurrency)}</dd>
         </div>
       </dl>
     </div>
   )
 }
 
-function getTransferCategory(t, accountId, accounts) {
-  const otherId =
-    t.from_account_id === accountId ? t.to_account_id : t.from_account_id
-  const other = accounts.find((a) => a.account_id === otherId)
-  const direction = t.from_account_id === accountId ? "To" : "From"
-  return `${direction} ${other?.name ?? "account"}`
-}
-
-function getCategoryCell(t, accountId, accounts) {
-  if (t.type === "transfer") {
-    return getTransferCategory(t, accountId, accounts)
-  }
-  return formatCategoryLabel(t.category, t.subcategory) || "—"
-}
-
 function AccountHistoryPanel({
   account,
   transactions,
+  allTransactions,
   accounts,
+  profile,
   loading,
+  onUpdated,
 }) {
   const [tab, setTab] = useState("all")
   const [search, setSearch] = useState("")
-  const [detailTransaction, setDetailTransaction] = useState(null)
   const accountId = account?.account_id ?? null
+  const txnCorpus = allTransactions ?? transactions
 
   const tabFiltered = useMemo(() => {
     if (tab === "all") return transactions
     if (tab === "income") return transactions.filter((t) => t.type === "income")
-    if (tab === "expense") return transactions.filter((t) => t.type === "expense")
-    return transactions.filter((t) => t.type === "transfer")
+    if (tab === "expense") return transactions.filter((t) => isExpenseTransaction(t))
+    return transactions.filter((t) => isTransferLegForVolume(t))
   }, [transactions, tab])
 
   const filtered = useMemo(() => {
@@ -112,14 +117,22 @@ function AccountHistoryPanel({
     const q = search.trim().toLowerCase()
     if (!q) return tabFiltered
     return tabFiltered.filter((t) => {
-      const category = getCategoryCell(t, accountId, accounts)
-      const notes = t.notes?.trim() || ""
+      const category = getTransactionCategoryCell(t, accounts, {
+        accountId,
+        allTransactions: allTransactions ?? transactions,
+      })
+      const notes = getNotesWithFeeContext(
+        t,
+        accounts,
+        txnCorpus,
+        accountId
+      )
       return (
         category.toLowerCase().includes(q) ||
         notes.toLowerCase().includes(q)
       )
     })
-  }, [tabFiltered, search, accountId, accounts])
+  }, [tabFiltered, search, accountId, accounts, txnCorpus])
 
   const monthGroups = useMemo(
     () => groupTransactionsByMonthLabel(filtered),
@@ -130,16 +143,21 @@ function AccountHistoryPanel({
     () => ({
       all: transactions.length,
       income: transactions.filter((t) => t.type === "income").length,
-      expense: transactions.filter((t) => t.type === "expense").length,
-      transfer: transactions.filter((t) => t.type === "transfer").length,
+      expense: transactions.filter((t) => isExpenseTransaction(t)).length,
+      transfer: transactions.filter((t) => isTransferLegForVolume(t)).length,
     }),
     [transactions]
   )
 
   if (!account) return null
 
+  const showTypeColumn = tab === "all"
+
   return (
-    <div className="card module-card accounts-account-detail accounts-history-panel">
+    <div
+      className="card module-card accounts-account-detail accounts-history-panel has-account-color"
+      style={accountColorStyleVars(account)}
+    >
       <AccountDetailHero account={account} />
 
       <div className="accounts-detail-body">
@@ -199,7 +217,8 @@ function AccountHistoryPanel({
             transactions{search.trim() ? " match your search" : " yet"}
           </p>
           <span className="empty-hint">
-            Income, expenses, and transfers linked to this account appear here.
+            Record income, expenses, or transfers for this account on the Transactions
+            page. They will show up here automatically.
           </span>
         </div>
       ) : (
@@ -208,44 +227,57 @@ function AccountHistoryPanel({
               <section key={group.key} className="accounts-history-month">
               <h3 className="accounts-history-month-label">{group.label}</h3>
               <div className="table-wrap accounts-history-table-wrap">
-                <table className="transaction-table accounts-history-table">
+                <table
+                  className={`transaction-table accounts-history-table${showTypeColumn ? " accounts-history-table-with-type" : ""}`}
+                >
                   <colgroup>
                     <col className="accounts-history-col-date" />
+                    {showTypeColumn && (
+                      <col className="accounts-history-col-type" />
+                    )}
                     <col className="accounts-history-col-category" />
+                    <col className="accounts-history-col-notes" />
                     <col className="accounts-history-col-amount" />
-                    <col className="accounts-history-col-action" />
                   </colgroup>
                   <thead>
                     <tr>
                       <th className="col-date">Date</th>
+                      {showTypeColumn && <th className="col-type">Type</th>}
                       <th className="col-category">Category</th>
+                      <th className="col-notes">Notes</th>
                       <th className="col-amount">Amount</th>
-                      <th className="col-action" aria-label="Details" />
                     </tr>
                   </thead>
                   <tbody>
                     {group.items.map((t) => {
-                      const category = getCategoryCell(
-                        t,
-                        account.account_id,
-                        accounts
-                      )
+                      const category = getTransactionCategoryCell(t, accounts, {
+                        accountId: account.account_id,
+                        allTransactions: allTransactions ?? transactions,
+                      })
                       const amountClass = getAmountClass(
                         t.type,
                         account.account_id,
                         t
                       )
-                      const prefix = getAmountPrefix(
-                        t.type,
-                        account.account_id,
-                        t
-                      )
+                      const prefix = getTransactionAmountPrefix(t.type, {
+                        accountId: account.account_id,
+                        transaction: t,
+                      })
 
                       return (
                         <tr key={t.transaction_id ?? t.id}>
                           <td className="col-date" data-label="Date">
                             {formatDisplayDate(t.date)}
                           </td>
+                          {showTypeColumn && (
+                            <td className="col-type" data-label="Type">
+                              <span
+                                className={`type-pill type-${getTypePillClass(t.type)}`}
+                              >
+                                {getTypeLabel(t, account.account_id)}
+                              </span>
+                            </td>
+                          )}
                           <td
                             className="col-category"
                             data-label="Category"
@@ -254,25 +286,28 @@ function AccountHistoryPanel({
                             {category}
                           </td>
                           <td
+                            className="col-notes"
+                            data-label="Notes"
+                            title={getNotesWithFeeContext(
+                              t,
+                              accounts,
+                              txnCorpus,
+                              account.account_id
+                            )}
+                          >
+                            {getNotesWithFeeContext(
+                              t,
+                              accounts,
+                              txnCorpus,
+                              account.account_id
+                            )}
+                          </td>
+                          <td
                             className={`col-amount amount accounts-history-amount-cell ${amountClass}`}
                             data-label="Amount"
                           >
                             {prefix}
-                            {formatMoney(t.amount)}
-                          </td>
-                          <td
-                            className="col-action accounts-history-action-cell"
-                            data-label="Details"
-                          >
-                            <button
-                              type="button"
-                              className="calendar-tx-view-btn accounts-history-view-btn"
-                              onClick={() => setDetailTransaction(t)}
-                              title="View notes and details"
-                              aria-label={`View details for ${category}`}
-                            >
-                              <Icon name="eye" size={16} />
-                            </button>
+                            {formatTransactionAmount(t)}
                           </td>
                         </tr>
                       )
@@ -287,11 +322,6 @@ function AccountHistoryPanel({
       </div>
       </div>
 
-      <TransactionDetailModal
-        transaction={detailTransaction}
-        accounts={accounts}
-        onClose={() => setDetailTransaction(null)}
-      />
     </div>
   )
 }

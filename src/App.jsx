@@ -16,6 +16,12 @@ import Reports from "./pages/Reports"
 import Calendar from "./pages/Calendar"
 import Profile from "./pages/Profile"
 import Settings from "./pages/Settings"
+import { CurrencyProvider } from "./context/CurrencyContext"
+import PrimaryCurrencySetupModal from "./components/PrimaryCurrencySetupModal"
+import {
+  fetchUserSettings,
+  needsPrimaryCurrencySetup,
+} from "./utils/userSettings"
 
 function getInitialTheme() {
   const saved = localStorage.getItem("theme")
@@ -53,6 +59,7 @@ function App() {
   const [transactions, setTransactions] = useState([])
   const [accounts, setAccounts] = useState([])
   const [profile, setProfile] = useState(null)
+  const [userSettings, setUserSettings] = useState(null)
   const [activePage, setActivePage] = useState("dashboard")
   const [theme, setTheme] = useState(getInitialTheme)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
@@ -63,6 +70,7 @@ function App() {
   const [dataLoading, setDataLoading] = useState(false)
   const [passwordRecovery, setPasswordRecovery] = useState(false)
   const [resetNotice, setResetNotice] = useState("")
+  const [currencySetupOpen, setCurrencySetupOpen] = useState(false)
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme)
@@ -76,21 +84,23 @@ function App() {
   const fetchProfile = useCallback(async (userId) => {
     if (!userId) {
       setProfile(null)
+      setUserSettings(null)
       return
     }
 
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .maybeSingle()
+    const [profileResult, settingsRow] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+      fetchUserSettings(userId),
+    ])
 
-    if (error) {
-      console.error("Profile fetch error:", error.message)
-      return
+    if (profileResult.error) {
+      console.error("Profile fetch error:", profileResult.error.message)
+    } else {
+      setProfile(profileResult.data)
     }
 
-    setProfile(data)
+    setUserSettings(settingsRow)
+    setCurrencySetupOpen(needsPrimaryCurrencySetup(settingsRow))
   }, [])
 
   useEffect(() => {
@@ -210,7 +220,16 @@ function App() {
     )
   }
 
+  const userId = session.user.id
+
   return (
+    <CurrencyProvider
+      userId={userId}
+      profile={profile}
+      userSettings={userSettings}
+      accounts={accounts}
+      transactions={transactions}
+    >
     <div className={`app-layout ${sidebarCollapsed ? "sidebar-is-collapsed" : ""}`}>
       <Sidebar
         activePage={activePage}
@@ -239,7 +258,10 @@ function App() {
         {activePage === "dashboard" && (
           <Dashboard
             transactions={transactions}
+            accounts={accounts}
+            profile={profile}
             loading={dataLoading}
+            onUpdated={fetchTransactions}
           />
         )}
 
@@ -247,6 +269,7 @@ function App() {
           <Transactions
             transactions={transactions}
             accounts={accounts}
+            profile={profile}
             fetchTransactions={fetchTransactions}
             fetchAccounts={fetchAccounts}
             loading={dataLoading}
@@ -257,7 +280,9 @@ function App() {
           <Accounts
             transactions={transactions}
             accounts={accounts}
+            profile={profile}
             fetchAccounts={fetchAccounts}
+            onTransactionsUpdated={fetchTransactions}
             loading={dataLoading}
           />
         )}
@@ -274,7 +299,9 @@ function App() {
           <Calendar
             transactions={transactions}
             accounts={accounts}
+            profile={profile}
             loading={dataLoading}
+            onUpdated={fetchTransactions}
           />
         )}
 
@@ -287,7 +314,13 @@ function App() {
         )}
 
         {activePage === "settings" && (
-          <Settings transactions={transactions} />
+          <Settings
+            transactions={transactions}
+            accounts={accounts}
+            profile={profile}
+            userSettings={userSettings}
+            onProfileUpdate={() => fetchProfile(userId)}
+          />
         )}
       </div>
 
@@ -299,7 +332,17 @@ function App() {
           }
         />
       )}
+
+      <PrimaryCurrencySetupModal
+        open={currencySetupOpen}
+        userId={userId}
+        onComplete={() => {
+          setCurrencySetupOpen(false)
+          fetchProfile(userId)
+        }}
+      />
     </div>
+    </CurrencyProvider>
   )
 }
 

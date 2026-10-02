@@ -34,6 +34,16 @@ export function validatePassword(password, { isSignUp = false } = {}) {
   return null
 }
 
+export function validatePasswordConfirm(password, confirmPassword) {
+  if (!confirmPassword) {
+    return "Please confirm your password"
+  }
+  if (password !== confirmPassword) {
+    return "Passwords do not match"
+  }
+  return null
+}
+
 export function validateName(name, { isSignUp = false, required = false } = {}) {
   if (!isSignUp && !required) return null
 

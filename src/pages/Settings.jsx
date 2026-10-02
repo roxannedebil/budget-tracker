@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import ConfirmDialog from "../components/ConfirmDialog"
 import Icon from "../components/icons/Icons"
+import CurrencyPreferences from "../components/settings/CurrencyPreferences"
 import {
   getExpenseCategories,
   getIncomeCategories,
@@ -60,7 +61,14 @@ function CategoryNoticeModal({ open, title, message, variant = "success", onClos
   )
 }
 
-function Settings({ transactions = [] }) {
+function Settings({
+  transactions = [],
+  accounts = [],
+  profile,
+  userSettings,
+  onProfileUpdate,
+}) {
+  const [settingsSection, setSettingsSection] = useState("categories")
   const [activeTab, setActiveTab] = useState("expense")
   const [categoryLists, setCategoryLists] = useState(() =>
     loadCategoryLists(transactions)
@@ -230,7 +238,34 @@ function Settings({ transactions = [] }) {
         </div>
       </div>
 
-      {/* Category Manager */}
+      <div className="settings-section-tabs">
+        <button
+          type="button"
+          className={`settings-section-tab ${settingsSection === "categories" ? "active" : ""}`}
+          onClick={() => setSettingsSection("categories")}
+        >
+          Categories
+        </button>
+        <button
+          type="button"
+          className={`settings-section-tab ${settingsSection === "currencies" ? "active" : ""}`}
+          onClick={() => setSettingsSection("currencies")}
+        >
+          Currencies
+        </button>
+      </div>
+
+      {settingsSection === "currencies" && profile && (
+        <CurrencyPreferences
+          profile={profile}
+          userSettings={userSettings}
+          accounts={accounts}
+          transactions={transactions}
+          onSaved={onProfileUpdate}
+        />
+      )}
+
+      {settingsSection === "categories" && (
       <div className="card settings-cat-card module-card">
         <div className="card-header">
           <h2>Categories &amp; Subcategories</h2>
@@ -248,7 +283,7 @@ function Settings({ transactions = [] }) {
             onClick={() => switchTab("expense")}
           >
             <span className="settings-tab-icon">
-              <Icon name="peso" size={18} />
+              <Icon name="expense" size={18} />
             </span>
             Expense
             <span className={`settings-tab-count ${activeTab === "expense" ? "active" : ""}`}>
@@ -451,6 +486,7 @@ function Settings({ transactions = [] }) {
           </ul>
         )}
       </div>
+      )}
 
       <CategoryNoticeModal
         open={Boolean(noticeModal)}

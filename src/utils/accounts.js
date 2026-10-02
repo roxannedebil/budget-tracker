@@ -13,8 +13,12 @@ export function getAccountIcon(type) {
 }
 
 export function getAccountById(accounts, id) {
-  if (!id) return null
-  return accounts.find((a) => a.account_id === id) ?? null
+  if (id == null || id === "") return null
+  const key = String(id)
+  return (
+    accounts.find((a) => a.account_id != null && String(a.account_id) === key) ??
+    null
+  )
 }
 
 export function accountLabel(accounts, id) {

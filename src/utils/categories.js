@@ -8,7 +8,15 @@ function fromTransactions(transactions, type) {
   return transactions
     .filter((t) => t.type === type && t.category)
     .map((t) => t.category.trim())
-    .filter((c) => !["Transfer"].includes(c))
+    .filter(
+      (c) =>
+        ![
+          "Transfer",
+          "Transfer out",
+          "Transfer in",
+          "Transfer out / Transfer in",
+        ].includes(c)
+    )
 }
 
 function subcategoriesFromTransactions(transactions, type, parentCategory) {

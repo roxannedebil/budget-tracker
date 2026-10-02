@@ -8,11 +8,12 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { useChartColors } from "../../hooks/useChartColors"
-import { formatMoney } from "../../utils/transactionStats"
+import { formatCurrency } from "../../utils/currency"
+import { formatChartTick } from "../../utils/currencySymbol"
 import EmptyState from "../EmptyState"
 import Icon from "../icons/Icons"
 
-function DailySpendingLineChart({ data }) {
+function DailySpendingLineChart({ data, currencyCode = "PHP" }) {
   const colors = useChartColors()
   const hasData = data.some((d) => d.amount > 0)
 
@@ -40,10 +41,10 @@ function DailySpendingLineChart({ data }) {
           tick={{ fill: colors.text, fontSize: 11 }}
           axisLine={{ stroke: colors.grid }}
           tickLine={false}
-          tickFormatter={(v) => `₱${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+          tickFormatter={(v) => formatChartTick(v, currencyCode)}
         />
         <Tooltip
-          formatter={(value) => formatMoney(value)}
+          formatter={(value) => formatCurrency(value, currencyCode)}
           labelFormatter={(label) => `Day ${label}`}
           contentStyle={{
             background: colors.card,

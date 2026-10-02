@@ -18,12 +18,8 @@ import {
   exportSummaryCsv,
   exportTransactionsCsv,
 } from "../utils/exportReports"
-import {
-  formatMoney,
-  getBalance,
-  getExpenses,
-  getIncome,
-} from "../utils/transactionStats"
+import CurrencyTotalsLines from "../components/CurrencyTotalsLines"
+import { summarizeByCurrency } from "../utils/monthByCurrency"
 import ChartCard from "../components/ChartCard"
 import MonthlyIncomeExpenseChart from "../components/charts/MonthlyIncomeExpenseChart"
 import CashFlowLineChart from "../components/charts/CashFlowLineChart"
@@ -34,8 +30,10 @@ import InsightsPanel from "../components/reports/InsightsPanel"
 import LoadingState from "../components/LoadingState"
 import StatCard from "../components/StatCard"
 import Icon from "../components/icons/Icons"
+import { useCurrency } from "../context/CurrencyContext"
 
 function Reports({ transactions, loading }) {
+  const { primary } = useCurrency()
   const [filters, setFilters] = useState(getDefaultReportFilters)
 
   const filtered = useMemo(
@@ -48,13 +46,17 @@ function Reports({ transactions, loading }) {
     [transactions]
   )
 
-  const income = getIncome(filtered)
-  const expenses = getExpenses(filtered)
-  const net = getBalance(filtered)
+  const byCurrency = useMemo(
+    () => summarizeByCurrency(filtered),
+    [filtered]
+  )
 
   const summary = useMemo(
-    () => ({ income, expenses, net, count: filtered.length }),
-    [income, expenses, net, filtered.length]
+    () => ({
+      byCurrency,
+      count: filtered.length,
+    }),
+    [byCurrency, filtered.length]
   )
 
   const monthlyData = useMemo(
@@ -74,14 +76,38 @@ function Reports({ transactions, loading }) {
     [filtered]
   )
 
+  const expenseChartData = useMemo(
+    () =>
+      expenseByCategory.map((r) => ({
+        ...r,
+        category:
+          expenseByCategory.filter((x) => x.category === r.category).length > 1
+            ? `${r.category} (${r.currency})`
+            : r.category,
+      })),
+    [expenseByCategory]
+  )
+
+  const incomeChartData = useMemo(
+    () =>
+      incomeByCategory.map((r) => ({
+        ...r,
+        category:
+          incomeByCategory.filter((x) => x.category === r.category).length > 1
+            ? `${r.category} (${r.currency})`
+            : r.category,
+      })),
+    [incomeByCategory]
+  )
+
   const comparison = useMemo(
     () => getMonthComparison(transactions),
     [transactions]
   )
 
   const insights = useMemo(
-    () => getFinancialInsights(filtered),
-    [filtered]
+    () => getFinancialInsights(filtered, primary),
+    [filtered, primary]
   )
 
   const exportPayload = {
@@ -122,20 +148,29 @@ function Reports({ transactions, loading }) {
           <StatCard
             icon={<Icon name="income" size={20} />}
             label="Income"
-            value={formatMoney(income)}
+            value={
+              <CurrencyTotalsLines rows={byCurrency} pick={(r) => r.income} stacked />
+            }
             variant="income"
+            hint="Per currency"
           />
           <StatCard
             icon={<Icon name="expense" size={20} />}
             label="Expenses"
-            value={formatMoney(expenses)}
+            value={
+              <CurrencyTotalsLines rows={byCurrency} pick={(r) => r.expense} stacked />
+            }
             variant="expense"
+            hint="Per currency"
           />
           <StatCard
             icon={<Icon name="wallet" size={20} />}
             label="Net savings"
-            value={formatMoney(net)}
-            variant={net >= 0 ? "income" : "expense"}
+            value={
+              <CurrencyTotalsLines rows={byCurrency} pick={(r) => r.net} stacked />
+            }
+            variant="income"
+            hint="Per currency"
           />
           <StatCard
             icon={<Icon name="receipt" size={20} />}
@@ -161,7 +196,7 @@ function Reports({ transactions, loading }) {
             subtitle="Monthly totals"
             className="chart-span-2 module-card"
           >
-            <MonthlyIncomeExpenseChart data={monthlyData} />
+            <MonthlyIncomeExpenseChart data={monthlyData} currencyCode={primary} />
           </ChartCard>
 
           <ChartCard
@@ -169,7 +204,7 @@ function Reports({ transactions, loading }) {
             subtitle="Running balance"
             className="chart-span-2 module-card"
           >
-            <CashFlowLineChart data={cashFlow} />
+            <CashFlowLineChart data={cashFlow} currencyCode={primary} />
           </ChartCard>
 
           <ChartCard
@@ -177,7 +212,7 @@ function Reports({ transactions, loading }) {
             className="module-card"
           >
             <CategoryPieChart
-              data={expenseByCategory}
+              data={expenseChartData}
               emptyTitle="No expenses"
               emptyMessage="Adjust filters or add expense transactions."
             />
@@ -185,7 +220,7 @@ function Reports({ transactions, loading }) {
 
           <ChartCard title="Income by category" className="module-card">
             <CategoryPieChart
-              data={incomeByCategory}
+              data={incomeChartData}
               emptyTitle="No income"
               emptyMessage="Adjust filters or add income transactions."
             />
