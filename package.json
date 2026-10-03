@@ -5,11 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist",
-    "preview": "vite preview",
-    "test": "node --test src/utils/transferFee.test.js"
+  "build": "vite build",
+  "preview": "vite preview"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.2",
